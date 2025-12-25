@@ -1,4 +1,4 @@
-## 0.0.1
+## 0.0.2
 
 - Initial release
 - OpenAPI 3.0 specification generation from Serverpod endpoints

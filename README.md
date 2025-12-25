@@ -3,9 +3,9 @@
 OpenAPI documentation for your Serverpod API with interactive Swagger UI.
 
 The `serverpod_openapi` package automatically generates OpenAPI 3.0 specifications from your Serverpod endpoints and provides an interactive documentation interface. It intelligently infers HTTP methods from your endpoint method names and handles authentication requirements automatically.
-![Home](images/home.png)
-![GitHub](images/authorized.png)
-![GitHub](images/authenticated.png)
+![Home](https://raw.githubusercontent.com/AdamMusa/serverpod_openapi/main/images/home.png)
+![Authorized](https://raw.githubusercontent.com/AdamMusa/serverpod_openapi/main/images/authorized.png)
+![Authenticated](https://raw.githubusercontent.com/AdamMusa/serverpod_openapi/main/images/authenticated.png)
 
 ## Features
 
@@ -65,116 +65,6 @@ void run(List<String> args) async {
 ```
 
 Once your server is running, visit `http://localhost:8082/openapi` to view your API documentation.
-
-## Complete Example
-
-Here's a complete example of a `server.dart` file with OpenAPI integration:
-
-```dart
-import 'package:serverpod/serverpod.dart';
-import 'package:serverpod_openapi/serverpod_openapi.dart';
-import 'package:your_server/src/generated/protocol.dart';
-import 'package:your_server/src/generated/endpoints.dart';
-
-void run(List<String> args) async {
-  // Initialize Serverpod
-  final pod = Serverpod(
-    args,
-    Protocol(),
-    Endpoints(),
-  );
-
-  // Add OpenAPI documentation route
-  // This will be available at http://localhost:8082/openapi
-  pod.webServer.addRoute(
-    RouteOpenApi(
-      pod,
-      title: 'E-Commerce API',
-      version: '1.0.0',
-      description: 'Complete API for managing products, orders, and customers.',
-    ),
-    '/openapi',
-  );
-
-  // Optional: Add additional routes or middleware here
-  // pod.webServer.addRoute(...);
-
-  // Start the server
-  await pod.start();
-}
-```
-
-### Example Endpoints
-
-With the following endpoints defined in your Serverpod project:
-
-```dart
-// lib/src/endpoints/user_endpoint.dart
-class UserEndpoint extends Endpoint {
-  // GET operation - inferred from 'list' prefix
-  Future<List<User>> listUsers(Session session) async {
-    // Returns a list of users
-  }
-
-  // GET operation - inferred from 'get' prefix
-  Future<User?> getUser(Session session, int id) async {
-    // Returns a specific user
-  }
-
-  // POST operation - inferred from 'create' prefix
-  Future<User> createUser(
-    Session session,
-    String name,
-    String email,
-  ) async {
-    // Creates a new user
-  }
-
-  // PATCH operation - inferred from 'update' prefix
-  Future<User> updateUser(
-    Session session,
-    int id,
-    String? name,
-  ) async {
-    // Updates an existing user
-  }
-
-  // DELETE operation - inferred from 'delete' prefix
-  Future<void> deleteUser(Session session, int id) async {
-    // Deletes a user
-  }
-}
-
-// lib/src/endpoints/product_endpoint.dart
-class ProductEndpoint extends Endpoint {
-  // GET operation
-  Future<List<Product>> listProducts(Session session) async {
-    // Returns a list of products
-  }
-
-  // POST operation
-  Future<Product> createProduct(
-    Session session,
-    String name,
-    double price,
-    int stock,
-  ) async {
-    // Creates a new product
-  }
-}
-```
-
-The OpenAPI documentation will automatically show:
-
-- `GET /user/listUsers` - List all users
-- `GET /user/getUser` - Get a specific user (requires `id` parameter)
-- `POST /user/createUser` - Create a new user (requires `name` and `email`)
-- `PATCH /user/updateUser` - Update a user (requires `id`, optional `name`)
-- `DELETE /user/deleteUser` - Delete a user (requires `id`)
-- `GET /product/listProducts` - List all products
-- `POST /product/createProduct` - Create a new product (requires `name`, `price`, `stock`)
-
-All endpoints will be automatically documented with their parameters, request/response schemas, and authentication requirements.
 
 ## Configuration
 
