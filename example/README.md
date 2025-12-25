@@ -2,32 +2,41 @@
 
 This directory contains an example `server.dart` file showing how to integrate `serverpod_openapi` into your Serverpod project.
 
-## Setup
+## Complete Example Code
 
-1. Copy this `server.dart` file to your Serverpod project's `bin` directory
-2. Update the imports to match your project structure:
-   - Replace `package:your_server/src/generated/protocol.dart` with your actual protocol import
-   - Replace `package:your_server/src/generated/endpoints.dart` with your actual endpoints import
-3. Add `serverpod_openapi` to your `pubspec.yaml`:
-   ```yaml
-   dependencies:
-     serverpod_openapi: ^0.0.1
-   ```
-4. Run `dart pub get`
-5. Start your server and visit `http://localhost:8082/openapi` to view the API documentation
-
-## Customization
-
-You can customize the OpenAPI documentation by modifying the `RouteOpenApi` parameters:
+Here's the complete `server.dart` file:
 
 ```dart
-pod.webServer.addRoute(
-  RouteOpenApi(
-    pod,
-    title: 'Your API Title',
-    version: '1.0.0',
-    description: 'Your API description',
-  ),
-  '/openapi', // Customize the path if needed
-);
+// NOTE: This is an example file. Update the imports below to match your Serverpod project structure.
+// ignore_for_file: uri_does_not_exist, undefined_function
+
+import 'package:serverpod/serverpod.dart';
+import 'package:serverpod_openapi/serverpod_openapi.dart';
+
+void run(List<String> args) async {
+  // Initialize Serverpod
+  final pod = Serverpod(
+    args,
+    Protocol(),
+    Endpoints(),
+  );
+
+  // Add OpenAPI documentation route
+  // This will be available at http://localhost:8082/openapi
+  pod.webServer.addRoute(
+    RouteOpenApi(
+      pod,
+      title: 'E-Commerce API',
+      version: '1.0.0',
+      description: 'Complete API for managing products, orders, and customers.',
+    ),
+    '/openapi',
+  );
+
+  // Optional: Add additional routes or middleware here
+  // pod.webServer.addRoute(...);
+
+  // Start the server
+  await pod.start();
+}
 ```

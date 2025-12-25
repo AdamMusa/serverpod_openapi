@@ -21,7 +21,7 @@ Add `serverpod_openapi` to your server's `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  serverpod_openapi: ^0.0.1
+  serverpod_openapi: ^0.0.3
 ```
 
 Then run:
