@@ -18,7 +18,7 @@ Add `serverpod_openapi` to your server's `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  serverpod_openapi: ^1.0.0
+  serverpod_openapi: ^0.0.1
 ```
 
 Then run:
@@ -201,6 +201,4 @@ Nullable types are properly handled with `oneOf` schemas.
 
 ## Limitations
 
-- The package infers HTTP methods from naming conventions. Methods that don't follow common patterns will default to POST (matching Serverpod's internal RPC structure).
-- Complex nested types may be represented as generic objects in the OpenAPI specification.
-- The package works with Serverpod's generated protocol and endpoints structure.
+- The package depends on Serverpod's internal structure. If Serverpod introduces breaking changes to its API, this package will need to be updated to maintain compatibility.
