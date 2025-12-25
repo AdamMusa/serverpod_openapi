@@ -1,6 +1,6 @@
 name: serverpod_openapi
 description: OpenAPI 3.0 specification generator for Serverpod endpoints with Swagger UI integration
-version: 0.0.2
+version: 0.0.3
 homepage: https://github.com/AdamMusa/serverpod_openapi
 
 environment:
