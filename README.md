@@ -3,9 +3,9 @@
 OpenAPI documentation for your Serverpod API with interactive Swagger UI.
 
 The `serverpod_openapi` package automatically generates OpenAPI 3.0 specifications from your Serverpod endpoints and provides an interactive documentation interface. It intelligently infers HTTP methods from your endpoint method names and handles authentication requirements automatically.
-
-![GitHub](images/github.png)
 ![Home](images/home.png)
+![GitHub](images/authorized.png)
+![GitHub](images/authenticated.png)
 
 ## Features
 
