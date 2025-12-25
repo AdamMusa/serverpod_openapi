@@ -291,4 +291,3 @@ class _OpenApiYamlWidget extends WebWidget {
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;');
 }
-

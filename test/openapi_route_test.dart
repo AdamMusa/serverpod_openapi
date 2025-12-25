@@ -187,7 +187,8 @@ requestInterceptor: function(request) {
 ''';
 
       expect(interceptorCode.contains('requestInterceptor'), isTrue);
-      expect(interceptorCode.contains('x-serverpod'), isFalse); // Not in interceptor code itself
+      expect(interceptorCode.contains('x-serverpod'),
+          isFalse); // Not in interceptor code itself
       expect(interceptorCode.contains('POST'), isTrue);
     });
 

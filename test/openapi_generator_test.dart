@@ -91,7 +91,8 @@ void main() {
           .replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(0)}')
           .trim()
           .split(' ')
-          .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
+          .map(
+              (word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
           .join(' ');
 
       expect(words, 'Create User');

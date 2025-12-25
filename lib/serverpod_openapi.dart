@@ -6,4 +6,3 @@ library serverpod_openapi;
 
 export 'src/openapi/openapi_generator.dart';
 export 'src/web/routes/openapi_route.dart';
-
