@@ -44,7 +44,12 @@ class OpenApiGenerator {
     // For OpenAPI, we create separate paths with semantic HTTP methods: /endpointName/methodName
     pod.endpoints.connectors.forEach((endpointName, connector) {
       // Check if this endpoint requires authentication
-      final requiresAuth = connector.endpoint.requireLogin;
+      final requiredScopes = connector.endpoint.requiredScopes
+          .map((scope) => scope.name)
+          .whereType<String>()
+          .toList();
+      final requiresAuth =
+          connector.endpoint.requireLogin || requiredScopes.isNotEmpty;
 
       connector.methodConnectors.forEach((methodName, methodConnector) {
         // Infer the semantic HTTP method from method name
@@ -61,6 +66,7 @@ class OpenApiGenerator {
 
         final isAuth = _isAuthEndpoint(endpointName, methodName);
         final isLogin = methodName == 'login';
+        final returnsVoid = _returnsVoid(methodConnector);
         final operation = _generateOperation(
           endpointName: endpointName,
           methodName: methodName,
@@ -69,8 +75,10 @@ class OpenApiGenerator {
               httpMethod, // Use semantic method as the actual HTTP method
           requiresAuth: requiresAuth &&
               !isAuth, // Use endpoint's requireLogin, but exclude auth endpoints
+          requiredScopes: requiredScopes,
           isAuthEndpoint: isAuth,
           isLogin: isLogin,
+          returnsVoid: returnsVoid,
         );
 
         // Initialize path if not exists
@@ -107,13 +115,15 @@ class OpenApiGenerator {
     required String
         httpMethod, // The semantic HTTP method (GET, POST, PATCH, DELETE)
     required bool requiresAuth, // Whether the endpoint requires authentication
+    required List<String> requiredScopes,
     bool isAuthEndpoint = false,
     bool isLogin = false,
+    bool? returnsVoid,
   }) {
     final requestBody = <String, dynamic>{};
     final requiredParams = <String>[];
     final parameters = <Map<String, dynamic>>[];
-    final usesQueryParameters = httpMethod == 'GET';
+    final usesQueryParameters = httpMethod == 'GET' || httpMethod == 'DELETE';
 
     // Serverpod requires "method" field in request body
     // All method parameters also go in request body
@@ -131,11 +141,12 @@ class OpenApiGenerator {
       final schema =
           _generateSchemaFromType(paramDesc.type, paramDesc.nullable);
       if (usesQueryParameters) {
+        final querySchema = _schemaForQueryParameter(schema);
         parameters.add({
           'name': paramName,
           'in': 'query',
           'required': !paramDesc.nullable,
-          'schema': schema,
+          'schema': querySchema,
         });
         return;
       }
@@ -196,7 +207,10 @@ class OpenApiGenerator {
       'parameters': parameters,
       'description': description,
       'responses': {
-        '200': _generateResponseSchema(isLogin),
+        '200': _generateResponseSchema(
+          isLogin: isLogin,
+          returnsVoid: returnsVoid,
+        ),
         '400': {'description': 'Bad request'},
         '401': {'description': 'Unauthorized'},
         '500': {'description': 'Internal server error'},
@@ -205,6 +219,9 @@ class OpenApiGenerator {
       // Store Serverpod metadata for request transformation
       'x-serverpod-endpoint': '/$endpointName',
       'x-serverpod-method': methodName,
+      'x-serverpod-rpc': true,
+      if (requiredScopes.isNotEmpty)
+        'x-serverpod-required-scopes': requiredScopes,
       'x-serverpod-actual-http-method':
           'POST', // Serverpod always uses POST internally
     };
@@ -254,7 +271,10 @@ class OpenApiGenerator {
   }
 
   /// Generates response schema for an operation
-  Map<String, dynamic> _generateResponseSchema(bool isLogin) {
+  Map<String, dynamic> _generateResponseSchema({
+    required bool isLogin,
+    bool? returnsVoid,
+  }) {
     if (isLogin) {
       // Login endpoint returns AuthSuccess with token
       return {
@@ -293,6 +313,23 @@ class OpenApiGenerator {
       };
     }
 
+    if (returnsVoid == true) {
+      return {
+        'description':
+            'Successful response. Serverpod serializes void results as null.',
+        'content': {
+          'application/json': {
+            'schema': {
+              'type': 'object',
+              'nullable': true,
+              'description': 'Serialized null for Dart void.',
+            },
+            'example': null,
+          },
+        },
+      };
+    }
+
     // Generic response for other endpoints
     return {
       'description': 'Successful response',
@@ -307,25 +344,47 @@ class OpenApiGenerator {
   /// Generates a JSON schema from a Dart type
   Map<String, dynamic> _generateSchemaFromType(Type type, bool nullable) {
     final schema = <String, dynamic>{};
-    final typeStr = type.toString();
+    final typeStr = _normalizeTypeName(type.toString());
 
     // Handle common types by checking string representation
-    if (typeStr == 'int' || typeStr == 'int?') {
+    if (typeStr == 'int') {
       schema['type'] = 'integer';
       schema['format'] = 'int64';
-    } else if (typeStr == 'double' || typeStr == 'double?') {
+    } else if (typeStr == 'double') {
       schema['type'] = 'number';
       schema['format'] = 'double';
-    } else if (typeStr == 'String' || typeStr == 'String?') {
+    } else if (typeStr == 'num') {
+      schema['type'] = 'number';
+    } else if (typeStr == 'String') {
       schema['type'] = 'string';
-    } else if (typeStr == 'bool' || typeStr == 'bool?') {
+    } else if (typeStr == 'bool') {
       schema['type'] = 'boolean';
-    } else if (typeStr == 'DateTime' || typeStr == 'DateTime?') {
+    } else if (typeStr == 'DateTime') {
       schema['type'] = 'string';
       schema['format'] = 'date-time';
+    } else if (typeStr == 'Duration') {
+      schema['type'] = 'integer';
+      schema['format'] = 'int64';
+      schema['description'] = 'Duration in milliseconds';
+    } else if (typeStr == 'Uri') {
+      schema['type'] = 'string';
+      schema['format'] = 'uri';
+    } else if (typeStr == 'BigInt') {
+      schema['type'] = 'string';
+      schema['description'] = 'Arbitrary precision integer';
+    } else if (typeStr == 'ByteData' || typeStr.contains('Uint8List')) {
+      schema['type'] = 'string';
+      schema['format'] = 'byte';
     } else if (typeStr.contains('UuidValue')) {
       schema['type'] = 'string';
       schema['format'] = 'uuid';
+    } else if (typeStr == 'Vector' ||
+        typeStr == 'HalfVector' ||
+        typeStr == 'SparseVector' ||
+        typeStr == 'Bit') {
+      schema['type'] = 'array';
+      schema['items'] = {'type': 'number'};
+      schema['description'] = 'Serverpod vector type: $typeStr';
     } else if (typeStr.contains('Map')) {
       schema['type'] = 'object';
       schema['additionalProperties'] = true;
@@ -336,18 +395,31 @@ class OpenApiGenerator {
       // For custom types, use object
       schema['type'] = 'object';
       schema['description'] = 'Type: $typeStr';
+      schema['x-serverpod-type'] = typeStr;
     }
 
     if (nullable) {
-      return {
-        'oneOf': [
-          schema,
-          {'type': 'null'}
-        ],
-        'nullable': true,
-      };
+      return {...schema, 'nullable': true};
     }
 
+    return schema;
+  }
+
+  String _normalizeTypeName(String typeName) {
+    return typeName.endsWith('?')
+        ? typeName.substring(0, typeName.length - 1)
+        : typeName;
+  }
+
+  Map<String, dynamic> _schemaForQueryParameter(Map<String, dynamic> schema) {
+    final schemaType = schema['type'];
+    if (schemaType == 'object' || schemaType == 'array') {
+      return {
+        'type': 'string',
+        'description':
+            'JSON encoded ${schemaType == 'array' ? 'array' : 'object'}.',
+      };
+    }
     return schema;
   }
 

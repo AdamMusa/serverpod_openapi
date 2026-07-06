@@ -166,6 +166,36 @@ requestInterceptor: function(request) {
       );
     });
 
+    test('should parse query values before moving them to POST body', () {
+      final queryValues = {
+        'includePosts': 'true',
+        'limit': '10',
+        'filter': '{"status":"published"}',
+        'tags': '["dart","serverpod"]',
+        'search': 'hello',
+      };
+
+      final body = <String, dynamic>{};
+      queryValues.forEach((key, value) {
+        if (value == 'true' || value == 'false') {
+          body[key] = value == 'true';
+        } else if ((value.startsWith('{') && value.endsWith('}')) ||
+            (value.startsWith('[') && value.endsWith(']'))) {
+          body[key] = jsonDecode(value);
+        } else if (num.tryParse(value) != null && value.isNotEmpty) {
+          body[key] = num.parse(value);
+        } else {
+          body[key] = value;
+        }
+      });
+
+      expect(body['includePosts'], isTrue);
+      expect(body['limit'], 10);
+      expect(body['filter'], {'status': 'published'});
+      expect(body['tags'], ['dart', 'serverpod']);
+      expect(body['search'], 'hello');
+    });
+
     test('should format JSON with indentation', () {
       // Test JSON formatting
       final spec = {

@@ -206,17 +206,13 @@ void main() {
 
     test('should handle nullable types', () {
       // Test nullable type handling
-      final baseSchema = {'type': 'string'};
       final nullableSchema = {
-        'oneOf': [
-          baseSchema,
-          {'type': 'null'}
-        ],
+        'type': 'string',
         'nullable': true,
       };
 
       expect(nullableSchema['nullable'], isTrue);
-      expect(nullableSchema['oneOf'], isA<List>());
+      expect(nullableSchema['type'], 'string');
     });
 
     test('should generate operation structure', () {
@@ -234,6 +230,8 @@ void main() {
         },
         'x-serverpod-endpoint': '/user',
         'x-serverpod-method': 'createUser',
+        'x-serverpod-rpc': true,
+        'x-serverpod-required-scopes': ['admin'],
         'x-serverpod-actual-http-method': 'POST',
       };
 
@@ -241,6 +239,8 @@ void main() {
       expect(operation['tags'], contains('user'));
       expect(operation['responses'], isA<Map>());
       expect(operation['x-serverpod-endpoint'], '/user');
+      expect(operation['x-serverpod-rpc'], isTrue);
+      expect(operation['x-serverpod-required-scopes'], ['admin']);
     });
 
     test('should generate query parameters for GET operations', () {
@@ -305,6 +305,32 @@ void main() {
       final schema = jsonContent['schema'] as Map<String, dynamic>;
       expect(schema['properties'], isA<Map>());
       expect(schema['required'], contains('method'));
+    });
+
+    test('should document void responses as serialized null', () {
+      final response = {
+        'description':
+            'Successful response. Serverpod serializes void results as null.',
+        'content': {
+          'application/json': {
+            'schema': {
+              'type': 'object',
+              'nullable': true,
+              'description': 'Serialized null for Dart void.',
+            },
+            'example': null,
+          },
+        },
+      };
+
+      final content = response['content'] as Map<String, dynamic>;
+      final jsonContent = content['application/json'] as Map<String, dynamic>;
+      final schema = jsonContent['schema'] as Map<String, dynamic>;
+
+      expect(response['description'], contains('void'));
+      expect(schema['type'], 'object');
+      expect(schema['nullable'], isTrue);
+      expect(jsonContent['example'], isNull);
     });
 
     test('should generate security schemes', () {

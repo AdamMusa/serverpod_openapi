@@ -155,9 +155,7 @@ class _SwaggerUIWidget extends WebWidget {
               const queryString = request.url.includes('?') ? '?' + request.url.split('?').slice(1).join('?') : '';
               const urlMatch = urlWithoutQuery.match(/\\/([^\\/]+)\\/([^\\/]+)\$/);
               if (urlMatch) {
-                const endpointName = urlMatch[1];
                 const methodName = urlMatch[2];
-                const originalMethod = request.method || 'GET';
                 
                 // Transform URL: remove method name from path
                 request.url = urlWithoutQuery.replace('/' + methodName, '') + queryString;
@@ -178,15 +176,21 @@ class _SwaggerUIWidget extends WebWidget {
                   }
                 }
                 
-                // For GET/HEAD requests, parameters might be in query string
+                // Semantic OpenAPI requests may carry parameters in the query string.
                 // We need to move them to the body
-                if ((originalMethod === 'GET' || originalMethod === 'HEAD') && request.url.includes('?')) {
+                if (request.url.includes('?')) {
                   try {
                     const urlObj = new URL(request.url);
                     urlObj.searchParams.forEach((value, key) => {
-                      // Try to parse as number or boolean, otherwise keep as string
+                      // Try to parse as JSON, number, or boolean, otherwise keep as string
                       if (value === 'true' || value === 'false') {
                         bodyObj[key] = value === 'true';
+                      } else if ((value.startsWith('{') && value.endsWith('}')) || (value.startsWith('[') && value.endsWith(']'))) {
+                        try {
+                          bodyObj[key] = JSON.parse(value);
+                        } catch (e) {
+                          bodyObj[key] = value;
+                        }
                       } else if (!isNaN(value) && value !== '') {
                         bodyObj[key] = Number(value);
                       } else {
