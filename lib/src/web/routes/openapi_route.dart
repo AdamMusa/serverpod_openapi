@@ -151,14 +151,16 @@ class _SwaggerUIWidget extends WebWidget {
             // 2. Always use POST method (Serverpod requirement)
             // 3. Ensure method is in request body
             if (request.url) {
-              const urlMatch = request.url.match(/\\/([^\\/]+)\\/([^\\/]+)\$/);
+              const urlWithoutQuery = request.url.split('?')[0];
+              const queryString = request.url.includes('?') ? '?' + request.url.split('?').slice(1).join('?') : '';
+              const urlMatch = urlWithoutQuery.match(/\\/([^\\/]+)\\/([^\\/]+)\$/);
               if (urlMatch) {
                 const endpointName = urlMatch[1];
                 const methodName = urlMatch[2];
                 const originalMethod = request.method || 'GET';
                 
                 // Transform URL: remove method name from path
-                request.url = request.url.replace('/' + methodName, '');
+                request.url = urlWithoutQuery.replace('/' + methodName, '') + queryString;
                 
                 // Always use POST method (Serverpod requirement)
                 request.method = 'POST';

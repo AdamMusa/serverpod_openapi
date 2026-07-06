@@ -145,6 +145,27 @@ requestInterceptor: function(request) {
       expect(interceptorCode.contains('POST'), isTrue);
     });
 
+    test('should preserve query string when transforming Serverpod URLs', () {
+      const requestUrl =
+          'http://localhost:8080/user/getUser?userId=1&includePosts=true';
+      final urlWithoutQuery = requestUrl.split('?')[0];
+      final queryString = requestUrl.contains('?')
+          ? '?${requestUrl.split('?').skip(1).join('?')}'
+          : '';
+      final urlMatch = RegExp(r'/([^/]+)/([^/]+)$').firstMatch(urlWithoutQuery);
+
+      expect(urlMatch, isNotNull);
+
+      final methodName = urlMatch!.group(2)!;
+      final transformedUrl =
+          urlWithoutQuery.replaceFirst('/$methodName', '') + queryString;
+
+      expect(
+        transformedUrl,
+        'http://localhost:8080/user?userId=1&includePosts=true',
+      );
+    });
+
     test('should format JSON with indentation', () {
       // Test JSON formatting
       final spec = {

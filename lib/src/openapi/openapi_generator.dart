@@ -112,6 +112,8 @@ class OpenApiGenerator {
   }) {
     final requestBody = <String, dynamic>{};
     final requiredParams = <String>[];
+    final parameters = <Map<String, dynamic>>[];
+    final usesQueryParameters = httpMethod == 'GET';
 
     // Serverpod requires "method" field in request body
     // All method parameters also go in request body
@@ -126,17 +128,30 @@ class OpenApiGenerator {
 
     // Add method parameters
     methodConnector.params.forEach((paramName, paramDesc) {
-      properties[paramName] =
+      final schema =
           _generateSchemaFromType(paramDesc.type, paramDesc.nullable);
+      if (usesQueryParameters) {
+        parameters.add({
+          'name': paramName,
+          'in': 'query',
+          'required': !paramDesc.nullable,
+          'schema': schema,
+        });
+        return;
+      }
+
+      properties[paramName] = schema;
       if (!paramDesc.nullable) {
         requiredParams.add(paramName);
       }
     });
 
     // "method" is always required
-    requiredParams.insert(0, 'method');
+    if (!usesQueryParameters) {
+      requiredParams.insert(0, 'method');
+    }
 
-    if (properties.isNotEmpty) {
+    if (!usesQueryParameters && properties.isNotEmpty) {
       requestBody['required'] = true;
 
       // Add example for login endpoint
@@ -173,10 +188,6 @@ class OpenApiGenerator {
             'Note: Serverpod uses POST internally for all RPC calls. The HTTP method shown ($httpMethod) is semantic.'
         : 'Note: Serverpod uses POST internally for all RPC calls to /$endpointName with {"method": "$methodName", ...params} in the body. '
             'The HTTP method shown ($httpMethod) is semantic for REST-like documentation.';
-
-    // No path parameters needed - method name is in the path for OpenAPI
-    // but Serverpod actually uses /endpointName with method in body
-    final parameters = <Map<String, dynamic>>[];
 
     final operation = <String, dynamic>{
       'operationId': '${endpointName}_$methodName',

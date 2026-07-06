@@ -243,6 +243,39 @@ void main() {
       expect(operation['x-serverpod-endpoint'], '/user');
     });
 
+    test('should generate query parameters for GET operations', () {
+      final parameters = [
+        {
+          'name': 'userId',
+          'in': 'query',
+          'required': true,
+          'schema': {'type': 'integer', 'format': 'int64'},
+        },
+        {
+          'name': 'includePosts',
+          'in': 'query',
+          'required': false,
+          'schema': {'type': 'boolean'},
+        },
+      ];
+
+      final operation = {
+        'operationId': 'user_getUser',
+        'summary': 'Get User',
+        'tags': ['user'],
+        'parameters': parameters,
+        'responses': {
+          '200': {'description': 'Successful response'},
+        },
+      };
+
+      expect(operation['parameters'], parameters);
+      expect(operation.containsKey('requestBody'), isFalse);
+      expect(parameters.first['in'], 'query');
+      expect(parameters.first['required'], isTrue);
+      expect(parameters.last['required'], isFalse);
+    });
+
     test('should generate request body structure', () {
       // Test request body structure
       final requestBody = {
