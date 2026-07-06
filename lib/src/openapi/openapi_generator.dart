@@ -436,16 +436,20 @@ class OpenApiGenerator {
     required Map<String, dynamic> schema,
     required bool isAuthEndpoint,
   }) {
-    if (httpMethod == 'GET' || httpMethod == 'DELETE') {
-      return true;
-    }
-
-    if (isAuthEndpoint || httpMethod != 'POST') {
+    if (isAuthEndpoint) {
       return false;
     }
 
     final normalizedParam = paramName.toLowerCase().replaceAll('_', '');
     if (_sensitiveParameterNames.any(normalizedParam.contains)) {
+      return false;
+    }
+
+    if (httpMethod == 'GET' || httpMethod == 'DELETE') {
+      return true;
+    }
+
+    if (httpMethod != 'POST') {
       return false;
     }
 
@@ -523,8 +527,9 @@ class OpenApiGenerator {
       return 'DELETE';
     }
 
-    // Mutation-like RPC names should stay POST even when their parameters are
-    // simple scalars, for example saveUser(id, name).
+    // Mutation-like and auth-flow RPC names should stay POST even when their
+    // parameters are simple scalars, for example saveUser(id, name) or
+    // verifyRegistrationCode(accountRequestId, verificationCode).
     if (firstWordIsAny(_createVerbs) || startsWithAny(_createPrefixes)) {
       return 'POST';
     }
@@ -610,7 +615,13 @@ class OpenApiGenerator {
   static const _sensitiveParameterNames = {
     'password',
     'passcode',
+    'code',
+    'verificationcode',
+    'registrationcode',
+    'resetcode',
     'token',
+    'registrationtoken',
+    'refreshtoken',
     'secret',
     'apikey',
     'key',
@@ -626,6 +637,14 @@ class OpenApiGenerator {
     'save',
     'submit',
     'send',
+    'verify',
+    'validate',
+    'confirm',
+    'login',
+    'logout',
+    'register',
+    'reset',
+    'refresh',
     'process',
     'run',
     'execute',
@@ -643,6 +662,14 @@ class OpenApiGenerator {
     'save',
     'submit',
     'send',
+    'verify',
+    'validate',
+    'confirm',
+    'login',
+    'logout',
+    'register',
+    'reset',
+    'refresh',
     'process',
     'run',
     'execute',

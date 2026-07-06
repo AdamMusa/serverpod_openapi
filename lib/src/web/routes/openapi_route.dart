@@ -38,7 +38,7 @@ class RouteOpenApi extends WidgetRoute {
     } else if (format == 'yaml') {
       return _rawResponse(
         generator.toYaml(),
-        mimeType: const MimeType('application', 'yaml'),
+        mimeType: const MimeType('text', 'yaml'),
       );
     }
 

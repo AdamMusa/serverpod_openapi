@@ -161,6 +161,24 @@ void main() {
           'expectedMethod': 'POST',
         },
         {
+          'methodName': 'verifyRegistrationCode',
+          'parameterNames': ['accountRequestId', 'verificationCode'],
+          'returnsVoid': false,
+          'expectedMethod': 'POST',
+        },
+        {
+          'methodName': 'verifyPasswordResetCode',
+          'parameterNames': ['passwordResetRequestId', 'verificationCode'],
+          'returnsVoid': false,
+          'expectedMethod': 'POST',
+        },
+        {
+          'methodName': 'refreshAccessToken',
+          'parameterNames': ['refreshToken'],
+          'returnsVoid': false,
+          'expectedMethod': 'POST',
+        },
+        {
           'methodName': 'profile',
           'parameterNames': ['userId', 'includePosts'],
           'returnsVoid': false,
