@@ -99,6 +99,36 @@ After adding the route, you can access your API documentation in several ways:
 
 ## How It Works
 
+### Endpoint OpenAPI Metadata
+
+Implement `OpenApiEndpoint` on an endpoint when you want to explicitly set the
+semantic HTTP method, summary, or response type for a method. Serverpod still
+provides the parameter names, parameter types, nullability, auth, and dispatch
+metadata from its generated endpoint connectors.
+
+```dart
+import 'package:serverpod/serverpod.dart';
+import 'package:serverpod_openapi/serverpod_openapi.dart' as openapi;
+
+class GreetingEndpoint extends Endpoint implements openapi.OpenApiEndpoint {
+  @override
+  Map<String, openapi.OpenApiOperation> get openApiOperations => {
+        'hello': openapi.Post(
+          summary: 'Get greeting',
+          response: Greeting,
+        ),
+      };
+
+  Future<Greeting> hello(Session session, String name) async {
+    return Greeting(message: 'Hello $name');
+  }
+}
+```
+
+This does not use `dart:mirrors`, `build_runner`, or route-level configuration.
+The key is the Serverpod method name, and the generated connector supplies the
+actual method parameters for OpenAPI.
+
 ### HTTP Method Inference
 
 Serverpod's generated endpoint connectors provide method names, parameter names,
@@ -179,7 +209,7 @@ The OpenAPI documentation will show:
 
 When you test these endpoints in Swagger UI, requests are automatically sent
 through Serverpod's internal RPC transport while Swagger still presents the
-annotated HTTP method and parameters.
+semantic HTTP method and parameters.
 
 ## Type Support
 
@@ -199,7 +229,7 @@ Nullable types are properly handled with `oneOf` schemas.
 
 ## Best Practices
 
-1. **Use clear endpoint method names**: Names like `getUser`, `listUsers`, `createUser`, `updateUser`, and `deleteUser` produce better semantic OpenAPI methods.
+1. **Use endpoint metadata for explicit contracts**: Implement `OpenApiEndpoint` when a method name does not clearly express the OpenAPI method or response.
 
 2. **Document your endpoints**: Add meaningful descriptions to your endpoint classes and methods. While the package generates documentation automatically, additional context helps API consumers.
 

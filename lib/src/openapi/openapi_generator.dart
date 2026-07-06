@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:serverpod/serverpod.dart';
+import 'openapi_metadata.dart';
 
 /// Generates OpenAPI 3.0 specification from Serverpod endpoints
 ///
@@ -50,12 +51,17 @@ class OpenApiGenerator {
           .toList();
       final requiresAuth =
           connector.endpoint.requireLogin || requiredScopes.isNotEmpty;
+      final endpointMetadata = _openApiOperationsForEndpoint(
+        connector.endpoint,
+      );
 
       connector.methodConnectors.forEach((methodName, methodConnector) {
+        final metadata = endpointMetadata[methodName];
         final httpMethod = resolveHttpMethodForDocumentation(
           methodName: methodName,
           parameterNames: _getParameterNames(methodConnector),
           returnsVoid: _returnsVoid(methodConnector),
+          metadata: metadata,
         );
 
         // Create path: /endpointName/methodName for OpenAPI documentation
@@ -77,6 +83,7 @@ class OpenApiGenerator {
           isAuthEndpoint: isAuth,
           isLogin: isLogin,
           returnsVoid: returnsVoid,
+          metadata: metadata,
         );
 
         // Initialize path if not exists
@@ -117,6 +124,7 @@ class OpenApiGenerator {
     bool isAuthEndpoint = false,
     bool isLogin = false,
     bool? returnsVoid,
+    OpenApiOperation? metadata,
   }) {
     final requestBody = <String, dynamic>{};
     final requiredParams = <String>[];
@@ -194,7 +202,7 @@ class OpenApiGenerator {
     }
 
     // Build summary from method name
-    final summary = _generateSummary(methodName);
+    final summary = metadata?.summary ?? _generateSummary(methodName);
 
     // Add description explaining Serverpod's RPC structure
     final description = isLogin
@@ -215,6 +223,7 @@ class OpenApiGenerator {
         '200': _generateResponseSchema(
           isLogin: isLogin,
           returnsVoid: returnsVoid,
+          responseType: metadata?.response,
         ),
         '400': {'description': 'Bad request'},
         '401': {'description': 'Unauthorized'},
@@ -573,12 +582,27 @@ class OpenApiGenerator {
     required String methodName,
     Iterable<String> parameterNames = const [],
     bool? returnsVoid,
+    OpenApiOperation? metadata,
   }) {
+    if (metadata != null) {
+      return metadata.method;
+    }
+
     return inferHttpMethodForDocumentation(
       methodName,
       parameterNames: parameterNames,
       returnsVoid: returnsVoid,
     );
+  }
+
+  Map<String, OpenApiOperation> _openApiOperationsForEndpoint(
+    Endpoint endpoint,
+  ) {
+    if (endpoint is OpenApiEndpoint) {
+      final openApiEndpoint = endpoint as OpenApiEndpoint;
+      return openApiEndpoint.openApiOperations;
+    }
+    return const {};
   }
 
   static List<String> _splitMethodName(String methodName) {
