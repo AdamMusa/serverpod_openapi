@@ -3,8 +3,9 @@ import 'package:serverpod/serverpod.dart';
 
 /// Generates OpenAPI 3.0 specification from Serverpod endpoints
 ///
-/// Serverpod's generated code doesn't explicitly store HTTP method information.
-/// This generator intelligently infers HTTP methods from method names for REST-like documentation.
+/// Serverpod's generated code provides endpoint, method, parameter, nullability,
+/// and void-return metadata. Semantic HTTP methods are inferred from method
+/// names for REST-like documentation.
 class OpenApiGenerator {
   final Serverpod pod;
   final String title;
@@ -52,10 +53,11 @@ class OpenApiGenerator {
           connector.endpoint.requireLogin || requiredScopes.isNotEmpty;
 
       connector.methodConnectors.forEach((methodName, methodConnector) {
-        final httpMethod = resolveHttpMethodForDocumentation(
-          methodName: methodName,
+        final returnsVoid = _returnsVoid(methodConnector);
+        final httpMethod = inferHttpMethodForDocumentation(
+          methodName,
           parameterNames: _getParameterNames(methodConnector),
-          returnsVoid: _returnsVoid(methodConnector),
+          returnsVoid: returnsVoid,
         );
 
         // Create path: /endpointName/methodName for OpenAPI documentation
@@ -64,15 +66,12 @@ class OpenApiGenerator {
 
         final isAuth = _isAuthEndpoint(endpointName, methodName);
         final isLogin = methodName == 'login';
-        final returnsVoid = _returnsVoid(methodConnector);
         final operation = _generateOperation(
           endpointName: endpointName,
           methodName: methodName,
           methodConnector: methodConnector,
-          httpMethod:
-              httpMethod, // Use semantic method as the actual HTTP method
-          requiresAuth: requiresAuth &&
-              !isAuth, // Use endpoint's requireLogin, but exclude auth endpoints
+          httpMethod: httpMethod,
+          requiresAuth: requiresAuth && !isAuth,
           requiredScopes: requiredScopes,
           isAuthEndpoint: isAuth,
           isLogin: isLogin,
@@ -105,14 +104,13 @@ class OpenApiGenerator {
     };
   }
 
-  /// Generates an OpenAPI operation for a method
+  /// Generates an OpenAPI operation for a method.
   Map<String, dynamic> _generateOperation({
     required String endpointName,
     required String methodName,
     required dynamic methodConnector,
-    required String
-        httpMethod, // The semantic HTTP method (GET, POST, PATCH, DELETE)
-    required bool requiresAuth, // Whether the endpoint requires authentication
+    required String httpMethod,
+    required bool requiresAuth,
     required List<String> requiredScopes,
     bool isAuthEndpoint = false,
     bool isLogin = false,
@@ -220,7 +218,6 @@ class OpenApiGenerator {
         '401': {'description': 'Unauthorized'},
         '500': {'description': 'Internal server error'},
       },
-      // Store the HTTP method for later use
       // Store Serverpod metadata for request transformation
       'x-serverpod-endpoint': '/$endpointName',
       'x-serverpod-method': methodName,
@@ -279,7 +276,6 @@ class OpenApiGenerator {
   Map<String, dynamic> _generateResponseSchema({
     required bool isLogin,
     bool? returnsVoid,
-    Type? responseType,
   }) {
     if (isLogin) {
       // Login endpoint returns AuthSuccess with token
@@ -331,17 +327,6 @@ class OpenApiGenerator {
               'description': 'Serialized null for Dart void.',
             },
             'example': null,
-          },
-        },
-      };
-    }
-
-    if (responseType != null) {
-      return {
-        'description': 'Successful response',
-        'content': {
-          'application/json': {
-            'schema': _generateSchemaFromType(responseType, false),
           },
         },
       };
@@ -467,10 +452,6 @@ class OpenApiGenerator {
     return schemaType != 'object' && schemaType != 'array';
   }
 
-  /// Infers HTTP method from method name for semantic documentation
-  ///
-  /// Since Serverpod's generated code doesn't store HTTP method information,
-  /// we infer it from common naming patterns for better REST-like OpenAPI documentation.
   /// Infers a semantic HTTP method for documentation from the data Serverpod
   /// exposes in generated endpoint connectors.
   static String inferHttpMethodForDocumentation(
@@ -562,23 +543,9 @@ class OpenApiGenerator {
       return 'GET';
     }
 
-    // If we can't determine, default to POST
-    // Serverpod uses POST internally for all RPC calls, so POST is the appropriate default
+    // Serverpod uses POST internally for all RPC calls, so POST is the safest
+    // semantic fallback when naming and parameter clues are ambiguous.
     return 'POST';
-  }
-
-  /// Resolves the semantic HTTP method for an endpoint method.
-  ///
-  static String resolveHttpMethodForDocumentation({
-    required String methodName,
-    Iterable<String> parameterNames = const [],
-    bool? returnsVoid,
-  }) {
-    return inferHttpMethodForDocumentation(
-      methodName,
-      parameterNames: parameterNames,
-      returnsVoid: returnsVoid,
-    );
   }
 
   static List<String> _splitMethodName(String methodName) {

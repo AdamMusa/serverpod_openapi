@@ -134,7 +134,7 @@ void main() {
       });
     });
 
-    test('should use endpoint metadata clues for HTTP method inference', () {
+    test('should use generated connector clues for HTTP method inference', () {
       final testCases = [
         {
           'methodName': 'byId',
