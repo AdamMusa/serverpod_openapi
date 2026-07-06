@@ -149,6 +149,18 @@ void main() {
           'expectedMethod': 'POST',
         },
         {
+          'methodName': 'hello',
+          'parameterNames': ['name'],
+          'returnsVoid': false,
+          'expectedMethod': 'GET',
+        },
+        {
+          'methodName': 'authenticate',
+          'parameterNames': ['apiKey'],
+          'returnsVoid': false,
+          'expectedMethod': 'POST',
+        },
+        {
           'methodName': 'profile',
           'parameterNames': ['userId', 'includePosts'],
           'returnsVoid': false,

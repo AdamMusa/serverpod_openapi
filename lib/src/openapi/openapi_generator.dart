@@ -479,6 +479,9 @@ class OpenApiGenerator {
       return verbs.contains(firstWord);
     }
 
+    final hasSensitiveParams =
+        paramNames.any((param) => _sensitiveParameterNames.any(param.contains));
+
     final hasQueryLikeParams = paramNames.isNotEmpty &&
         paramNames.every(
           (param) =>
@@ -520,6 +523,12 @@ class OpenApiGenerator {
       return 'DELETE';
     }
 
+    // Mutation-like RPC names should stay POST even when their parameters are
+    // simple scalars, for example saveUser(id, name).
+    if (firstWordIsAny(_createVerbs) || startsWithAny(_createPrefixes)) {
+      return 'POST';
+    }
+
     if (returnsVoid == true) {
       return 'POST';
     }
@@ -531,6 +540,10 @@ class OpenApiGenerator {
     }
 
     if (hasQueryLikeParams && returnsVoid != true) {
+      return 'GET';
+    }
+
+    if (paramNames.isNotEmpty && !hasSensitiveParams && returnsVoid != true) {
       return 'GET';
     }
 
@@ -604,6 +617,40 @@ class OpenApiGenerator {
     'authorization',
     'auth',
     'credential',
+  };
+
+  static const _createVerbs = {
+    'create',
+    'add',
+    'insert',
+    'save',
+    'submit',
+    'send',
+    'process',
+    'run',
+    'execute',
+    'start',
+    'finish',
+    'upload',
+    'import',
+    'generate',
+  };
+
+  static const _createPrefixes = {
+    'create',
+    'add',
+    'insert',
+    'save',
+    'submit',
+    'send',
+    'process',
+    'run',
+    'execute',
+    'start',
+    'finish',
+    'upload',
+    'import',
+    'generate',
   };
 
   static const _updateVerbs = {
