@@ -397,11 +397,6 @@ class OpenApiGenerator {
       return 'GET';
     }
 
-    // Create operations (POST).
-    if (firstWordIsAny(_createVerbs) || startsWithAny(_createPrefixes)) {
-      return 'POST';
-    }
-
     // Update operations (PATCH).
     if (firstWordIsAny(_updateVerbs) || startsWithAny(_updatePrefixes)) {
       return 'PATCH';
@@ -410,11 +405,6 @@ class OpenApiGenerator {
     // Delete operations (DELETE).
     if (firstWordIsAny(_deleteVerbs) || startsWithAny(_deletePrefixes)) {
       return 'DELETE';
-    }
-
-    // Action/command operations (POST - for operations that perform actions).
-    if (firstWordIsAny(_actionVerbs) || startsWithAny(_actionPrefixes)) {
-      return 'POST';
     }
 
     if (returnsVoid == true) {
@@ -491,27 +481,6 @@ class OpenApiGenerator {
     'search',
   };
 
-  static const _createVerbs = {
-    'create',
-    'add',
-    'insert',
-    'save',
-    'register',
-    'new',
-    'build',
-    'generate',
-    'submit',
-    'send',
-    'post',
-  };
-
-  static const _createPrefixes = {
-    'create',
-    'add',
-    'insert',
-    'register',
-  };
-
   static const _updateVerbs = {
     'update',
     'modify',
@@ -543,39 +512,6 @@ class OpenApiGenerator {
     'delete',
     'remove',
     'destroy',
-  };
-
-  static const _actionVerbs = {
-    'execute',
-    'run',
-    'perform',
-    'do',
-    'trigger',
-    'invoke',
-    'call',
-    'start',
-    'stop',
-    'cancel',
-    'complete',
-    'finish',
-    'verify',
-    'validate',
-    'sync',
-    'link',
-    'login',
-    'logout',
-    'clear',
-    'shutdown',
-    'reload',
-  };
-
-  static const _actionPrefixes = {
-    'execute',
-    'run',
-    'start',
-    'stop',
-    'login',
-    'logout',
   };
 
   static const _readNouns = {

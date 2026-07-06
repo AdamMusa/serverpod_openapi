@@ -111,9 +111,7 @@ void main() {
         'modifyData': 'PATCH',
         'deleteUser': 'DELETE',
         'removeItem': 'DELETE',
-        'clearAllLogs': 'POST',
-        'shutdown': 'POST',
-        'login': 'POST',
+        'processJob': 'POST',
         'unknownMethod': 'POST', // Default
       };
 
