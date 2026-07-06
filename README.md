@@ -74,7 +74,6 @@ The `RouteOpenApi` constructor accepts the following parameters:
 - `title` (optional): The API title displayed in the documentation (default: `'API Documentation'`)
 - `version` (optional): The API version (default: `'1.0.0'`)
 - `description` (optional): A description of your API
-- `operationMetadata` (optional): Explicit HTTP method, summary, and response metadata keyed by `endpoint.method`
 
 ### Example with Custom Configuration
 
@@ -100,47 +99,12 @@ After adding the route, you can access your API documentation in several ways:
 
 ## How It Works
 
-### Explicit OpenAPI Metadata
-
-Use `operationMetadata` on the OpenAPI route to define the HTTP method shown in
-OpenAPI/Swagger for specific Serverpod methods:
-
-```dart
-import 'package:serverpod_openapi/serverpod_openapi.dart';
-
-pod.webServer.addRoute(
-  RouteOpenApi(
-    pod,
-    title: 'My API',
-    version: '1.0.0',
-    operationMetadata: {
-      'user.listUsers': Get(summary: 'List users'),
-      'user.createUser': Post(summary: 'Create user', response: User),
-      'user.updateUser': Patch(summary: 'Update user', response: User),
-      'user.deleteUser': Delete(summary: 'Delete user'),
-    },
-  ),
-  '/openapi',
-);
-```
-
-The metadata key is `endpointName.methodName`. For quick overrides where a
-method name is unique across endpoints, you can also use just `methodName`.
-
-Available metadata helpers:
-
-- `Get(summary: '...', response: MyModel)`
-- `Post(summary: '...', response: MyModel)`
-- `Put(summary: '...', response: MyModel)`
-- `Patch(summary: '...', response: MyModel)`
-- `Delete(summary: '...', response: MyModel)`
-
-Serverpod still uses POST internally for RPC calls. This metadata controls the
-semantic OpenAPI operation shown to API consumers.
-
 ### HTTP Method Inference
 
-If no explicit metadata is present, the package falls back to method name inference using common naming conventions:
+Serverpod's generated endpoint connectors provide method names, parameter names,
+parameter types, nullability, and void-return metadata. The package uses that
+generated metadata to produce request parameters and applies conservative method
+name inference for the semantic HTTP method shown in OpenAPI:
 
 **GET** methods (read operations):
 
@@ -206,20 +170,6 @@ class UserEndpoint extends Endpoint {
 }
 ```
 
-And route metadata:
-
-```dart
-RouteOpenApi(
-  pod,
-  operationMetadata: {
-    'user.listUsers': Get(summary: 'List users'),
-    'user.createUser': Post(summary: 'Create user', response: User),
-    'user.updateUser': Patch(summary: 'Update user', response: User),
-    'user.deleteUser': Delete(summary: 'Delete user'),
-  },
-)
-```
-
 The OpenAPI documentation will show:
 
 - `GET /user/listUsers` - for listing users
@@ -249,7 +199,7 @@ Nullable types are properly handled with `oneOf` schemas.
 
 ## Best Practices
 
-1. **Use explicit OpenAPI metadata**: Prefer `Get`, `Post`, `Put`, `Patch`, and `Delete` in `operationMetadata` so the OpenAPI contract is intentional instead of inferred.
+1. **Use clear endpoint method names**: Names like `getUser`, `listUsers`, `createUser`, `updateUser`, and `deleteUser` produce better semantic OpenAPI methods.
 
 2. **Document your endpoints**: Add meaningful descriptions to your endpoint classes and methods. While the package generates documentation automatically, additional context helps API consumers.
 

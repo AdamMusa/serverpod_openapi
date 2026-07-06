@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:serverpod/serverpod.dart';
-import 'openapi_annotations.dart';
 
 /// Generates OpenAPI 3.0 specification from Serverpod endpoints
 ///
@@ -12,7 +11,6 @@ class OpenApiGenerator {
   final String version;
   final String? serverUrl;
   final String? description;
-  final Map<String, OpenApiMethod> operationMetadata;
 
   OpenApiGenerator({
     required this.pod,
@@ -20,7 +18,6 @@ class OpenApiGenerator {
     this.version = '1.0.0',
     this.serverUrl,
     this.description,
-    this.operationMetadata = const {},
   });
 
   /// Generates the complete OpenAPI specification
@@ -55,16 +52,10 @@ class OpenApiGenerator {
           connector.endpoint.requireLogin || requiredScopes.isNotEmpty;
 
       connector.methodConnectors.forEach((methodName, methodConnector) {
-        final metadata = openApiMethodForOperation(
-          endpointName: endpointName,
-          methodName: methodName,
-          operationMetadata: operationMetadata,
-        );
         final httpMethod = resolveHttpMethodForDocumentation(
           methodName: methodName,
           parameterNames: _getParameterNames(methodConnector),
           returnsVoid: _returnsVoid(methodConnector),
-          metadata: metadata,
         );
 
         // Create path: /endpointName/methodName for OpenAPI documentation
@@ -86,7 +77,6 @@ class OpenApiGenerator {
           isAuthEndpoint: isAuth,
           isLogin: isLogin,
           returnsVoid: returnsVoid,
-          metadata: metadata,
         );
 
         // Initialize path if not exists
@@ -127,7 +117,6 @@ class OpenApiGenerator {
     bool isAuthEndpoint = false,
     bool isLogin = false,
     bool? returnsVoid,
-    OpenApiMethod? metadata,
   }) {
     final requestBody = <String, dynamic>{};
     final requiredParams = <String>[];
@@ -205,7 +194,7 @@ class OpenApiGenerator {
     }
 
     // Build summary from method name
-    final summary = metadata?.summary ?? _generateSummary(methodName);
+    final summary = _generateSummary(methodName);
 
     // Add description explaining Serverpod's RPC structure
     final description = isLogin
@@ -226,7 +215,6 @@ class OpenApiGenerator {
         '200': _generateResponseSchema(
           isLogin: isLogin,
           returnsVoid: returnsVoid,
-          responseType: metadata?.response,
         ),
         '400': {'description': 'Bad request'},
         '401': {'description': 'Unauthorized'},
@@ -581,38 +569,16 @@ class OpenApiGenerator {
 
   /// Resolves the semantic HTTP method for an endpoint method.
   ///
-  /// Explicit OpenAPI metadata takes precedence over heuristics because it
-  /// represents the developer's intended public API contract.
   static String resolveHttpMethodForDocumentation({
     required String methodName,
     Iterable<String> parameterNames = const [],
     bool? returnsVoid,
-    OpenApiMethod? metadata,
   }) {
-    if (metadata != null) {
-      return metadata.method;
-    }
-
     return inferHttpMethodForDocumentation(
       methodName,
       parameterNames: parameterNames,
       returnsVoid: returnsVoid,
     );
-  }
-
-  /// Reads explicit OpenAPI metadata for an endpoint method.
-  ///
-  /// Serverpod's generated [MethodConnector] already provides parameter and
-  /// void-return metadata, but it does not preserve arbitrary Dart method
-  /// annotations. Keeping this metadata outside reflection makes the package
-  /// usable without `dart:mirrors` or `build_runner`.
-  static OpenApiMethod? openApiMethodForOperation({
-    required String endpointName,
-    required String methodName,
-    required Map<String, OpenApiMethod> operationMetadata,
-  }) {
-    return operationMetadata['$endpointName.$methodName'] ??
-        operationMetadata[methodName];
   }
 
   static List<String> _splitMethodName(String methodName) {

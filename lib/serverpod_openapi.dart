@@ -5,5 +5,4 @@
 library;
 
 export 'src/openapi/openapi_generator.dart';
-export 'src/openapi/openapi_annotations.dart';
 export 'src/web/routes/openapi_route.dart';

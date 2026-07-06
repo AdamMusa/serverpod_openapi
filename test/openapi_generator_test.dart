@@ -214,53 +214,6 @@ void main() {
       }
     });
 
-    test('should read explicit OpenAPI metadata', () {
-      final metadata = {
-        'things.readThing': const Get(
-          summary: 'Get thing',
-          response: _ThingResponse,
-        ),
-        'createThing': const Post(summary: 'Create thing'),
-      };
-
-      final readThing = OpenApiGenerator.openApiMethodForOperation(
-        endpointName: 'things',
-        methodName: 'readThing',
-        operationMetadata: metadata,
-      );
-      final createThing = OpenApiGenerator.openApiMethodForOperation(
-        endpointName: 'things',
-        methodName: 'createThing',
-        operationMetadata: metadata,
-      );
-
-      expect(readThing?.method, 'GET');
-      expect(readThing?.summary, 'Get thing');
-      expect(readThing?.response, _ThingResponse);
-      expect(createThing?.method, 'POST');
-    });
-
-    test('should prefer explicit metadata over inference', () {
-      expect(
-        OpenApiGenerator.resolveHttpMethodForDocumentation(
-          methodName: 'createThing',
-          parameterNames: ['id'],
-          returnsVoid: false,
-          metadata: const Post(),
-        ),
-        'POST',
-      );
-      expect(
-        OpenApiGenerator.resolveHttpMethodForDocumentation(
-          methodName: 'readThing',
-          parameterNames: ['password'],
-          returnsVoid: false,
-          metadata: const Get(),
-        ),
-        'GET',
-      );
-    });
-
     test('should generate type schemas correctly', () {
       // Test type schema generation logic
       final typeTests = {
@@ -473,8 +426,6 @@ void main() {
     });
   });
 }
-
-class _ThingResponse {}
 
 /// Simple YAML conversion for testing
 String _simpleYamlConvert(Map<dynamic, dynamic> obj, [int indent = 0]) {
