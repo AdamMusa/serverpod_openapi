@@ -107,35 +107,48 @@ Use explicit annotations on endpoint methods to define the HTTP method shown in 
 import 'package:serverpod_openapi/serverpod_openapi.dart';
 
 class UserEndpoint extends Endpoint {
-  @get
+  @Get(summary: 'List users', response: List<User>)
   Future<List<User>> listUsers(Session session) async {
     // Returns a list of users
   }
 
-  @post
+  @Post(summary: 'Create user', response: User)
   Future<User> createUser(Session session, String name, String email) async {
     // Creates a new user
   }
 
-  @patch
+  @Patch(summary: 'Update user', response: User)
   Future<User> updateUser(Session session, int id, String name) async {
     // Updates an existing user
   }
 
-  @delete
+  @Delete(summary: 'Delete user')
   Future<void> deleteUser(Session session, int id) async {
     // Deletes a user
   }
 }
 ```
 
+If you prefer namespaced annotations, import with a prefix:
+
+```dart
+import 'package:serverpod_openapi/serverpod_openapi.dart' as st;
+
+class UserEndpoint extends Endpoint {
+  @st.Get(summary: 'List users', response: List<User>)
+  Future<List<User>> listUsers(Session session) async {
+    // Returns a list of users
+  }
+}
+```
+
 Available annotations:
 
-- `@get`
-- `@post`
-- `@put`
-- `@patch`
-- `@delete`
+- `@Get(summary: '...', response: MyModel)`
+- `@Post(summary: '...', response: MyModel)`
+- `@Put(summary: '...', response: MyModel)`
+- `@Patch(summary: '...', response: MyModel)`
+- `@Delete(summary: '...', response: MyModel)`
 
 Serverpod still uses POST internally for RPC calls. The annotation controls the semantic OpenAPI operation shown to API consumers.
 
@@ -189,22 +202,22 @@ Consider a Serverpod endpoint:
 
 ```dart
 class UserEndpoint extends Endpoint {
-  @get
+  @Get(summary: 'List users', response: List<User>)
   Future<List<User>> listUsers(Session session) async {
     // Returns a list of users
   }
 
-  @post
+  @Post(summary: 'Create user', response: User)
   Future<User> createUser(Session session, String name, String email) async {
     // Creates a new user
   }
 
-  @patch
+  @Patch(summary: 'Update user', response: User)
   Future<User> updateUser(Session session, int id, String name) async {
     // Updates an existing user
   }
 
-  @delete
+  @Delete(summary: 'Delete user')
   Future<void> deleteUser(Session session, int id) async {
     // Deletes a user
   }
@@ -240,7 +253,7 @@ Nullable types are properly handled with `oneOf` schemas.
 
 ## Best Practices
 
-1. **Use explicit HTTP annotations**: Prefer `@get`, `@post`, `@put`, `@patch`, and `@delete` so the OpenAPI contract is intentional instead of inferred.
+1. **Use explicit HTTP annotations**: Prefer `@Get`, `@Post`, `@Put`, `@Patch`, and `@Delete` so the OpenAPI contract is intentional instead of inferred.
 
 2. **Document your endpoints**: Add meaningful descriptions to your endpoint classes and methods. While the package generates documentation automatically, additional context helps API consumers.
 

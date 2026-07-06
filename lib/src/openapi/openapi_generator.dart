@@ -54,6 +54,10 @@ class OpenApiGenerator {
           connector.endpoint.requireLogin || requiredScopes.isNotEmpty;
 
       connector.methodConnectors.forEach((methodName, methodConnector) {
+        final annotation = annotatedOpenApiMethodForEndpoint(
+          endpoint: connector.endpoint,
+          methodName: methodName,
+        );
         final httpMethod = resolveHttpMethodForDocumentation(
           endpoint: connector.endpoint,
           methodName: methodName,
@@ -80,6 +84,7 @@ class OpenApiGenerator {
           isAuthEndpoint: isAuth,
           isLogin: isLogin,
           returnsVoid: returnsVoid,
+          annotation: annotation,
         );
 
         // Initialize path if not exists
@@ -120,6 +125,7 @@ class OpenApiGenerator {
     bool isAuthEndpoint = false,
     bool isLogin = false,
     bool? returnsVoid,
+    OpenApiMethod? annotation,
   }) {
     final requestBody = <String, dynamic>{};
     final requiredParams = <String>[];
@@ -197,7 +203,7 @@ class OpenApiGenerator {
     }
 
     // Build summary from method name
-    final summary = _generateSummary(methodName);
+    final summary = annotation?.summary ?? _generateSummary(methodName);
 
     // Add description explaining Serverpod's RPC structure
     final description = isLogin
@@ -218,6 +224,7 @@ class OpenApiGenerator {
         '200': _generateResponseSchema(
           isLogin: isLogin,
           returnsVoid: returnsVoid,
+          responseType: annotation?.response,
         ),
         '400': {'description': 'Bad request'},
         '401': {'description': 'Unauthorized'},
@@ -282,6 +289,7 @@ class OpenApiGenerator {
   Map<String, dynamic> _generateResponseSchema({
     required bool isLogin,
     bool? returnsVoid,
+    Type? responseType,
   }) {
     if (isLogin) {
       // Login endpoint returns AuthSuccess with token
@@ -333,6 +341,17 @@ class OpenApiGenerator {
               'description': 'Serialized null for Dart void.',
             },
             'example': null,
+          },
+        },
+      };
+    }
+
+    if (responseType != null) {
+      return {
+        'description': 'Successful response',
+        'content': {
+          'application/json': {
+            'schema': _generateSchemaFromType(responseType, false),
           },
         },
       };
@@ -569,12 +588,12 @@ class OpenApiGenerator {
     Iterable<String> parameterNames = const [],
     bool? returnsVoid,
   }) {
-    final annotatedMethod = annotatedHttpMethodForEndpoint(
+    final annotatedMethod = annotatedOpenApiMethodForEndpoint(
       endpoint: endpoint,
       methodName: methodName,
     );
     if (annotatedMethod != null) {
-      return annotatedMethod;
+      return annotatedMethod.method;
     }
 
     return inferHttpMethodForDocumentation(
@@ -589,6 +608,17 @@ class OpenApiGenerator {
     required Object endpoint,
     required String methodName,
   }) {
+    return annotatedOpenApiMethodForEndpoint(
+      endpoint: endpoint,
+      methodName: methodName,
+    )?.method;
+  }
+
+  /// Reads OpenAPI operation metadata from a Serverpod endpoint method.
+  static OpenApiMethod? annotatedOpenApiMethodForEndpoint({
+    required Object endpoint,
+    required String methodName,
+  }) {
     final declaration =
         reflect(endpoint).type.instanceMembers[Symbol(methodName)];
     if (declaration is! MethodMirror) {
@@ -598,7 +628,7 @@ class OpenApiGenerator {
     for (final metadata in declaration.metadata) {
       final value = metadata.reflectee;
       if (value is OpenApiMethod) {
-        return value.method;
+        return value;
       }
     }
 

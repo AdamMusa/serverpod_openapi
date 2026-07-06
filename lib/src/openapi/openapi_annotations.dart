@@ -4,27 +4,77 @@
 /// These annotations only control the semantic OpenAPI/Swagger operation.
 class OpenApiMethod {
   final String method;
+  final String? summary;
+  final Type? response;
 
-  const OpenApiMethod(this.method);
+  const OpenApiMethod(
+    this.method, {
+    this.summary,
+    this.response,
+  });
 
-  const OpenApiMethod.get() : method = 'GET';
-  const OpenApiMethod.post() : method = 'POST';
-  const OpenApiMethod.put() : method = 'PUT';
-  const OpenApiMethod.patch() : method = 'PATCH';
-  const OpenApiMethod.delete() : method = 'DELETE';
+  const OpenApiMethod.get({
+    this.summary,
+    this.response,
+  }) : method = 'GET';
+
+  const OpenApiMethod.post({
+    this.summary,
+    this.response,
+  }) : method = 'POST';
+
+  const OpenApiMethod.put({
+    this.summary,
+    this.response,
+  }) : method = 'PUT';
+
+  const OpenApiMethod.patch({
+    this.summary,
+    this.response,
+  }) : method = 'PATCH';
+
+  const OpenApiMethod.delete({
+    this.summary,
+    this.response,
+  }) : method = 'DELETE';
 }
 
 /// Documents the annotated Serverpod endpoint method as a GET operation.
-const get = OpenApiMethod.get();
+class Get extends OpenApiMethod {
+  const Get({
+    super.summary,
+    super.response,
+  }) : super.get();
+}
 
 /// Documents the annotated Serverpod endpoint method as a POST operation.
-const post = OpenApiMethod.post();
+class Post extends OpenApiMethod {
+  const Post({
+    super.summary,
+    super.response,
+  }) : super.post();
+}
 
 /// Documents the annotated Serverpod endpoint method as a PUT operation.
-const put = OpenApiMethod.put();
+class Put extends OpenApiMethod {
+  const Put({
+    super.summary,
+    super.response,
+  }) : super.put();
+}
 
 /// Documents the annotated Serverpod endpoint method as a PATCH operation.
-const patch = OpenApiMethod.patch();
+class Patch extends OpenApiMethod {
+  const Patch({
+    super.summary,
+    super.response,
+  }) : super.patch();
+}
 
 /// Documents the annotated Serverpod endpoint method as a DELETE operation.
-const delete = OpenApiMethod.delete();
+class Delete extends OpenApiMethod {
+  const Delete({
+    super.summary,
+    super.response,
+  }) : super.delete();
+}

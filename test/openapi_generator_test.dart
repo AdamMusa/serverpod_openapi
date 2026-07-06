@@ -218,40 +218,50 @@ void main() {
       final endpoint = _AnnotatedEndpoint();
 
       expect(
-        OpenApiGenerator.annotatedHttpMethodForEndpoint(
+        OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
           endpoint: endpoint,
           methodName: 'readThing',
-        ),
+        )?.method,
         'GET',
       );
       expect(
-        OpenApiGenerator.annotatedHttpMethodForEndpoint(
+        OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
           endpoint: endpoint,
           methodName: 'createThing',
-        ),
+        )?.method,
         'POST',
       );
       expect(
-        OpenApiGenerator.annotatedHttpMethodForEndpoint(
+        OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
           endpoint: endpoint,
           methodName: 'replaceThing',
-        ),
+        )?.method,
         'PUT',
       );
       expect(
-        OpenApiGenerator.annotatedHttpMethodForEndpoint(
+        OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
           endpoint: endpoint,
           methodName: 'changeThing',
-        ),
+        )?.method,
         'PATCH',
       );
       expect(
-        OpenApiGenerator.annotatedHttpMethodForEndpoint(
+        OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
           endpoint: endpoint,
           methodName: 'removeThing',
-        ),
+        )?.method,
         'DELETE',
       );
+    });
+
+    test('should read annotation summary and response type', () {
+      final annotation = OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
+        endpoint: _AnnotatedEndpoint(),
+        methodName: 'readThing',
+      );
+
+      expect(annotation?.summary, 'Get thing');
+      expect(annotation?.response, _ThingResponse);
     });
 
     test('should prefer explicit annotations over inference', () {
@@ -491,21 +501,23 @@ void main() {
 }
 
 class _AnnotatedEndpoint {
-  @get
+  @Get(summary: 'Get thing', response: _ThingResponse)
   void readThing() {}
 
-  @post
+  @Post(summary: 'Create thing')
   void createThing() {}
 
-  @put
+  @Put()
   void replaceThing() {}
 
-  @patch
+  @Patch()
   void changeThing() {}
 
-  @delete
+  @Delete()
   void removeThing() {}
 }
+
+class _ThingResponse {}
 
 /// Simple YAML conversion for testing
 String _simpleYamlConvert(Map<dynamic, dynamic> obj, [int indent = 0]) {
