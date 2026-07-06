@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:serverpod/serverpod.dart';
+import '../../openapi/openapi_annotations.dart';
 import '../../openapi/openapi_generator.dart';
 
 /// Web route that serves the OpenAPI specification
@@ -9,12 +10,14 @@ class RouteOpenApi extends WidgetRoute {
   final String title;
   final String version;
   final String? description;
+  final Map<String, OpenApiMethod> operationMetadata;
 
   RouteOpenApi(
     this.pod, {
     this.title = 'API Documentation',
     this.version = '1.0.0',
     this.description,
+    this.operationMetadata = const {},
   });
 
   @override
@@ -54,6 +57,7 @@ class RouteOpenApi extends WidgetRoute {
       version: version,
       serverUrl: apiServerUrl, // Use API server URL for actual calls
       description: description,
+      operationMetadata: operationMetadata,
     );
   }
 

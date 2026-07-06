@@ -214,74 +214,48 @@ void main() {
       }
     });
 
-    test('should read explicit HTTP method annotations', () {
-      final endpoint = _AnnotatedEndpoint();
+    test('should read explicit OpenAPI metadata', () {
+      final metadata = {
+        'things.readThing': const Get(
+          summary: 'Get thing',
+          response: _ThingResponse,
+        ),
+        'createThing': const Post(summary: 'Create thing'),
+      };
 
-      expect(
-        OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
-          endpoint: endpoint,
-          methodName: 'readThing',
-        )?.method,
-        'GET',
-      );
-      expect(
-        OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
-          endpoint: endpoint,
-          methodName: 'createThing',
-        )?.method,
-        'POST',
-      );
-      expect(
-        OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
-          endpoint: endpoint,
-          methodName: 'replaceThing',
-        )?.method,
-        'PUT',
-      );
-      expect(
-        OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
-          endpoint: endpoint,
-          methodName: 'changeThing',
-        )?.method,
-        'PATCH',
-      );
-      expect(
-        OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
-          endpoint: endpoint,
-          methodName: 'removeThing',
-        )?.method,
-        'DELETE',
-      );
-    });
-
-    test('should read annotation summary and response type', () {
-      final annotation = OpenApiGenerator.annotatedOpenApiMethodForEndpoint(
-        endpoint: _AnnotatedEndpoint(),
+      final readThing = OpenApiGenerator.openApiMethodForOperation(
+        endpointName: 'things',
         methodName: 'readThing',
+        operationMetadata: metadata,
+      );
+      final createThing = OpenApiGenerator.openApiMethodForOperation(
+        endpointName: 'things',
+        methodName: 'createThing',
+        operationMetadata: metadata,
       );
 
-      expect(annotation?.summary, 'Get thing');
-      expect(annotation?.response, _ThingResponse);
+      expect(readThing?.method, 'GET');
+      expect(readThing?.summary, 'Get thing');
+      expect(readThing?.response, _ThingResponse);
+      expect(createThing?.method, 'POST');
     });
 
-    test('should prefer explicit annotations over inference', () {
-      final endpoint = _AnnotatedEndpoint();
-
+    test('should prefer explicit metadata over inference', () {
       expect(
         OpenApiGenerator.resolveHttpMethodForDocumentation(
-          endpoint: endpoint,
           methodName: 'createThing',
           parameterNames: ['id'],
           returnsVoid: false,
+          metadata: const Post(),
         ),
         'POST',
       );
       expect(
         OpenApiGenerator.resolveHttpMethodForDocumentation(
-          endpoint: endpoint,
           methodName: 'readThing',
           parameterNames: ['password'],
           returnsVoid: false,
+          metadata: const Get(),
         ),
         'GET',
       );
@@ -498,23 +472,6 @@ void main() {
       }
     });
   });
-}
-
-class _AnnotatedEndpoint {
-  @Get(summary: 'Get thing', response: _ThingResponse)
-  void readThing() {}
-
-  @Post(summary: 'Create thing')
-  void createThing() {}
-
-  @Put()
-  void replaceThing() {}
-
-  @Patch()
-  void changeThing() {}
-
-  @Delete()
-  void removeThing() {}
 }
 
 class _ThingResponse {}

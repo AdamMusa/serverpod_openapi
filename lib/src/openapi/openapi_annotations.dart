@@ -1,7 +1,7 @@
 /// Declares the HTTP method that should be shown in the generated OpenAPI spec.
 ///
 /// Serverpod still receives requests through its normal RPC POST transport.
-/// These annotations only control the semantic OpenAPI/Swagger operation.
+/// These metadata objects only control the semantic OpenAPI/Swagger operation.
 class OpenApiMethod {
   final String method;
   final String? summary;
@@ -39,7 +39,7 @@ class OpenApiMethod {
   }) : method = 'DELETE';
 }
 
-/// Documents the annotated Serverpod endpoint method as a GET operation.
+/// Documents a Serverpod endpoint method as a GET operation.
 class Get extends OpenApiMethod {
   const Get({
     super.summary,
@@ -47,7 +47,7 @@ class Get extends OpenApiMethod {
   }) : super.get();
 }
 
-/// Documents the annotated Serverpod endpoint method as a POST operation.
+/// Documents a Serverpod endpoint method as a POST operation.
 class Post extends OpenApiMethod {
   const Post({
     super.summary,
@@ -55,7 +55,7 @@ class Post extends OpenApiMethod {
   }) : super.post();
 }
 
-/// Documents the annotated Serverpod endpoint method as a PUT operation.
+/// Documents a Serverpod endpoint method as a PUT operation.
 class Put extends OpenApiMethod {
   const Put({
     super.summary,
@@ -63,7 +63,7 @@ class Put extends OpenApiMethod {
   }) : super.put();
 }
 
-/// Documents the annotated Serverpod endpoint method as a PATCH operation.
+/// Documents a Serverpod endpoint method as a PATCH operation.
 class Patch extends OpenApiMethod {
   const Patch({
     super.summary,
@@ -71,7 +71,7 @@ class Patch extends OpenApiMethod {
   }) : super.patch();
 }
 
-/// Documents the annotated Serverpod endpoint method as a DELETE operation.
+/// Documents a Serverpod endpoint method as a DELETE operation.
 class Delete extends OpenApiMethod {
   const Delete({
     super.summary,
