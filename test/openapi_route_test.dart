@@ -31,7 +31,7 @@ void main() {
         Uri.parse('http://localhost:8082/openapi'),
       ];
 
-      testUrls.forEach((uri) {
+      for (final uri in testUrls) {
         final format = uri.queryParameters['format'];
         if (uri.queryParameters.containsKey('format') && format != null) {
           expect(format, isNotNull);
@@ -39,7 +39,7 @@ void main() {
         } else {
           expect(format, isNull);
         }
-      });
+      }
     });
 
     test('should construct API server URL from request URL', () {
@@ -59,12 +59,12 @@ void main() {
         },
       ];
 
-      testCases.forEach((testCase) {
+      for (final testCase in testCases) {
         final request = testCase['request'] as Uri;
         final expected = testCase['expected'] as String;
         final apiServerUrl = '${request.scheme}://${request.host}:8080';
         expect(apiServerUrl, expected);
-      });
+      }
     });
 
     test('should generate HTML structure for Swagger UI', () {
@@ -206,7 +206,7 @@ requestInterceptor: function(request) {
         },
       };
 
-      final prettyJson = JsonEncoder.withIndent('  ').convert(spec);
+      final prettyJson = const JsonEncoder.withIndent('  ').convert(spec);
       final compactJson = jsonEncode(spec);
 
       expect(prettyJson.contains('\n'), isTrue);
@@ -223,14 +223,14 @@ requestInterceptor: function(request) {
         'https://example.com/openapi?format=yaml',
       ];
 
-      testUrls.forEach((urlStr) {
+      for (final urlStr in testUrls) {
         final uri = Uri.parse(urlStr);
         expect(uri.scheme, isNotEmpty);
         expect(uri.host, isNotEmpty);
         if (uri.queryParameters.containsKey('format')) {
           expect(['json', 'yaml'], contains(uri.queryParameters['format']));
         }
-      });
+      }
     });
   });
 }
