@@ -49,7 +49,11 @@ class OpenApiGenerator {
       connector.methodConnectors.forEach((methodName, methodConnector) {
         // Infer the semantic HTTP method from method name
         // This is the "real" HTTP method that should be used in OpenAPI
-        final httpMethod = _inferHttpMethod(methodName);
+        final httpMethod = inferHttpMethodForDocumentation(
+          methodName,
+          parameterNames: _getParameterNames(methodConnector),
+          returnsVoid: _returnsVoid(methodConnector),
+        );
 
         // Create path: /endpointName/methodName for OpenAPI documentation
         // The actual Serverpod path is /endpointName, but we use /endpointName/methodName for clarity
@@ -340,89 +344,255 @@ class OpenApiGenerator {
   ///
   /// Since Serverpod's generated code doesn't store HTTP method information,
   /// we infer it from common naming patterns for better REST-like OpenAPI documentation.
-  String _inferHttpMethod(String methodName) {
+  /// Infers a semantic HTTP method for documentation from the data Serverpod
+  /// exposes in generated endpoint connectors.
+  static String inferHttpMethodForDocumentation(
+    String methodName, {
+    Iterable<String> parameterNames = const [],
+    bool? returnsVoid,
+  }) {
     final lowerName = methodName.toLowerCase();
+    final words = _splitMethodName(methodName);
+    final firstWord = words.isEmpty ? lowerName : words.first;
+    final paramNames = parameterNames
+        .map((param) => param.toLowerCase().replaceAll('_', ''))
+        .toList();
 
-    // Read operations (GET)
-    if (lowerName.startsWith('get') ||
-        lowerName.startsWith('list') ||
-        lowerName.startsWith('fetch') ||
-        lowerName.startsWith('find') ||
-        lowerName.startsWith('read') ||
-        lowerName.startsWith('retrieve') ||
-        lowerName.startsWith('query') ||
-        lowerName.startsWith('search') ||
-        lowerName.startsWith('show') ||
-        lowerName.startsWith('view') ||
-        lowerName.startsWith('load')) {
+    bool startsWithAny(Iterable<String> prefixes) {
+      return prefixes.any(lowerName.startsWith);
+    }
+
+    bool firstWordIsAny(Set<String> verbs) {
+      return verbs.contains(firstWord);
+    }
+
+    final hasQueryLikeParams = paramNames.isNotEmpty &&
+        paramNames.every(
+          (param) =>
+              param == 'id' ||
+              param.endsWith('id') ||
+              param == 'uuid' ||
+              param.endsWith('uuid') ||
+              param == 'query' ||
+              param == 'filter' ||
+              param == 'filters' ||
+              param == 'search' ||
+              param == 'searchterm' ||
+              param == 'limit' ||
+              param == 'offset' ||
+              param == 'page' ||
+              param == 'pagesize' ||
+              param == 'sort' ||
+              param == 'orderby' ||
+              param == 'start' ||
+              param == 'end' ||
+              param == 'from' ||
+              param == 'to' ||
+              param.startsWith('include') ||
+              param.startsWith('with'),
+        );
+
+    // Read operations (GET).
+    if (firstWordIsAny(_readVerbs) || startsWithAny(_readPrefixes)) {
       return 'GET';
     }
 
-    // Create operations (POST)
-    if (lowerName.startsWith('create') ||
-        lowerName.startsWith('add') ||
-        lowerName.startsWith('insert') ||
-        lowerName.startsWith('save') ||
-        lowerName.startsWith('register') ||
-        lowerName.startsWith('new') ||
-        lowerName.startsWith('build') ||
-        lowerName.startsWith('generate') ||
-        lowerName.startsWith('submit') ||
-        lowerName.startsWith('send') ||
-        lowerName.startsWith('post')) {
+    // Create operations (POST).
+    if (firstWordIsAny(_createVerbs) || startsWithAny(_createPrefixes)) {
       return 'POST';
     }
 
-    // Update operations (PATCH)
-    if (lowerName.startsWith('update') ||
-        lowerName.startsWith('modify') ||
-        lowerName.startsWith('patch') ||
-        lowerName.startsWith('edit') ||
-        lowerName.startsWith('change') ||
-        lowerName.startsWith('set') ||
-        lowerName.startsWith('put') ||
-        lowerName.startsWith('replace') ||
-        lowerName.startsWith('adjust')) {
+    // Update operations (PATCH).
+    if (firstWordIsAny(_updateVerbs) || startsWithAny(_updatePrefixes)) {
       return 'PATCH';
     }
 
-    // Delete operations (DELETE)
-    if (lowerName.startsWith('delete') ||
-        lowerName.startsWith('remove') ||
-        lowerName.startsWith('destroy') ||
-        lowerName.startsWith('drop') ||
-        lowerName.startsWith('clear') ||
-        lowerName.startsWith('unlink') ||
-        lowerName.startsWith('unregister')) {
+    // Delete operations (DELETE).
+    if (firstWordIsAny(_deleteVerbs) || startsWithAny(_deletePrefixes)) {
       return 'DELETE';
     }
 
-    // Action/command operations (POST - for operations that perform actions)
-    if (lowerName.startsWith('execute') ||
-        lowerName.startsWith('run') ||
-        lowerName.startsWith('perform') ||
-        lowerName.startsWith('do') ||
-        lowerName.startsWith('trigger') ||
-        lowerName.startsWith('invoke') ||
-        lowerName.startsWith('call') ||
-        lowerName.startsWith('start') ||
-        lowerName.startsWith('stop') ||
-        lowerName.startsWith('cancel') ||
-        lowerName.startsWith('complete') ||
-        lowerName.startsWith('finish') ||
-        lowerName.startsWith('verify') ||
-        lowerName.startsWith('validate') ||
-        lowerName.startsWith('sync') ||
-        lowerName.startsWith('link') ||
-        lowerName.startsWith('login') ||
-        lowerName.startsWith('logout')) {
+    // Action/command operations (POST - for operations that perform actions).
+    if (firstWordIsAny(_actionVerbs) || startsWithAny(_actionPrefixes)) {
       return 'POST';
+    }
+
+    if (returnsVoid == true) {
+      return 'POST';
+    }
+
+    if (paramNames.isEmpty &&
+        words.any((word) => _readNouns.contains(word)) &&
+        returnsVoid != true) {
+      return 'GET';
+    }
+
+    if (hasQueryLikeParams && returnsVoid != true) {
+      return 'GET';
     }
 
     // If we can't determine, default to POST
     // Serverpod uses POST internally for all RPC calls, so POST is the appropriate default
     return 'POST';
   }
+
+  static List<String> _splitMethodName(String methodName) {
+    return methodName
+        .replaceAllMapped(
+          RegExp(r'([a-z0-9])([A-Z])'),
+          (match) => '${match.group(1)} ${match.group(2)}',
+        )
+        .replaceAll(RegExp(r'[_\-\s]+'), ' ')
+        .split(' ')
+        .where((word) => word.isNotEmpty)
+        .map((word) => word.toLowerCase())
+        .toList();
+  }
+
+  List<String> _getParameterNames(dynamic methodConnector) {
+    final params = methodConnector.params;
+    if (params is Map) {
+      return params.keys.map((key) => key.toString().toLowerCase()).toList();
+    }
+    return const [];
+  }
+
+  bool? _returnsVoid(dynamic methodConnector) {
+    if (methodConnector is MethodConnector) {
+      return methodConnector.returnsVoid;
+    }
+    return null;
+  }
+
+  static const _readVerbs = {
+    'get',
+    'list',
+    'fetch',
+    'find',
+    'read',
+    'retrieve',
+    'query',
+    'search',
+    'show',
+    'view',
+    'load',
+    'count',
+    'check',
+  };
+
+  static const _readPrefixes = {
+    'get',
+    'list',
+    'fetch',
+    'find',
+    'read',
+    'retrieve',
+    'query',
+    'search',
+  };
+
+  static const _createVerbs = {
+    'create',
+    'add',
+    'insert',
+    'save',
+    'register',
+    'new',
+    'build',
+    'generate',
+    'submit',
+    'send',
+    'post',
+  };
+
+  static const _createPrefixes = {
+    'create',
+    'add',
+    'insert',
+    'register',
+  };
+
+  static const _updateVerbs = {
+    'update',
+    'modify',
+    'patch',
+    'edit',
+    'change',
+    'set',
+    'put',
+    'replace',
+    'adjust',
+  };
+
+  static const _updatePrefixes = {
+    'update',
+    'modify',
+    'patch',
+  };
+
+  static const _deleteVerbs = {
+    'delete',
+    'remove',
+    'destroy',
+    'drop',
+    'unlink',
+    'unregister',
+  };
+
+  static const _deletePrefixes = {
+    'delete',
+    'remove',
+    'destroy',
+  };
+
+  static const _actionVerbs = {
+    'execute',
+    'run',
+    'perform',
+    'do',
+    'trigger',
+    'invoke',
+    'call',
+    'start',
+    'stop',
+    'cancel',
+    'complete',
+    'finish',
+    'verify',
+    'validate',
+    'sync',
+    'link',
+    'login',
+    'logout',
+    'clear',
+    'shutdown',
+    'reload',
+  };
+
+  static const _actionPrefixes = {
+    'execute',
+    'run',
+    'start',
+    'stop',
+    'login',
+    'logout',
+  };
+
+  static const _readNouns = {
+    'status',
+    'health',
+    'info',
+    'summary',
+    'overview',
+    'settings',
+    'configuration',
+    'config',
+    'data',
+    'definition',
+    'definitions',
+    'count',
+    'counts',
+  };
 
   /// Generates a summary from method name
   String _generateSummary(String methodName) {
@@ -441,7 +611,7 @@ class OpenApiGenerator {
   String toJson({bool pretty = true}) {
     final spec = generate();
     if (pretty) {
-      return JsonEncoder.withIndent('  ').convert(spec);
+      return const JsonEncoder.withIndent('  ').convert(spec);
     }
     return jsonEncode(spec);
   }

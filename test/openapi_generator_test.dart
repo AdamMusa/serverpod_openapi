@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:serverpod_openapi/serverpod_openapi.dart';
 import 'package:test/test.dart';
 
 /// Tests for OpenApiGenerator
@@ -99,45 +100,79 @@ void main() {
     });
 
     test('should infer HTTP methods from method names', () {
-      // Test HTTP method inference logic
       final testCases = {
         'getUser': 'GET',
         'listUsers': 'GET',
         'fetchData': 'GET',
+        'checkHealth': 'GET',
         'createUser': 'POST',
         'addItem': 'POST',
         'updateUser': 'PATCH',
         'modifyData': 'PATCH',
         'deleteUser': 'DELETE',
         'removeItem': 'DELETE',
+        'clearAllLogs': 'POST',
+        'shutdown': 'POST',
         'login': 'POST',
         'unknownMethod': 'POST', // Default
       };
 
       testCases.forEach((methodName, expectedMethod) {
-        final lowerName = methodName.toLowerCase();
-        String httpMethod;
-
-        if (lowerName.startsWith('get') ||
-            lowerName.startsWith('list') ||
-            lowerName.startsWith('fetch')) {
-          httpMethod = 'GET';
-        } else if (lowerName.startsWith('create') ||
-            lowerName.startsWith('add') ||
-            lowerName.startsWith('login')) {
-          httpMethod = 'POST';
-        } else if (lowerName.startsWith('update') ||
-            lowerName.startsWith('modify')) {
-          httpMethod = 'PATCH';
-        } else if (lowerName.startsWith('delete') ||
-            lowerName.startsWith('remove')) {
-          httpMethod = 'DELETE';
-        } else {
-          httpMethod = 'POST'; // Default
-        }
-
+        final httpMethod = OpenApiGenerator.inferHttpMethodForDocumentation(
+          methodName,
+        );
         expect(httpMethod, expectedMethod, reason: 'Method: $methodName');
       });
+    });
+
+    test('should use endpoint metadata clues for HTTP method inference', () {
+      final testCases = [
+        {
+          'methodName': 'byId',
+          'parameterNames': ['userId'],
+          'returnsVoid': false,
+          'expectedMethod': 'GET',
+        },
+        {
+          'methodName': 'saveUser',
+          'parameterNames': ['id', 'name'],
+          'returnsVoid': false,
+          'expectedMethod': 'POST',
+        },
+        {
+          'methodName': 'profile',
+          'parameterNames': ['userId', 'includePosts'],
+          'returnsVoid': false,
+          'expectedMethod': 'GET',
+        },
+        {
+          'methodName': 'refreshCache',
+          'parameterNames': <String>[],
+          'returnsVoid': true,
+          'expectedMethod': 'POST',
+        },
+        {
+          'methodName': 'status',
+          'parameterNames': <String>[],
+          'returnsVoid': false,
+          'expectedMethod': 'GET',
+        },
+      ];
+
+      for (final testCase in testCases) {
+        final methodName = testCase['methodName'] as String;
+        final parameterNames = testCase['parameterNames'] as List<String>;
+        final returnsVoid = testCase['returnsVoid'] as bool;
+        final expectedMethod = testCase['expectedMethod'] as String;
+
+        final httpMethod = OpenApiGenerator.inferHttpMethodForDocumentation(
+          methodName,
+          parameterNames: parameterNames,
+          returnsVoid: returnsVoid,
+        );
+
+        expect(httpMethod, expectedMethod, reason: 'Method: $methodName');
+      }
     });
 
     test('should generate type schemas correctly', () {
