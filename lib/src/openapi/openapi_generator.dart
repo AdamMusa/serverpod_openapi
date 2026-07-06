@@ -123,10 +123,12 @@ class OpenApiGenerator {
     final requestBody = <String, dynamic>{};
     final requiredParams = <String>[];
     final parameters = <Map<String, dynamic>>[];
-    final usesQueryParameters = httpMethod == 'GET' || httpMethod == 'DELETE';
+    final prefersQueryParameters =
+        httpMethod == 'GET' || httpMethod == 'DELETE';
 
-    // Serverpod requires "method" field in request body
-    // All method parameters also go in request body
+    // Serverpod requires "method" in the actual RPC body. Swagger can expose
+    // simple parameters as query fields; the UI interceptor moves them back
+    // into the body before sending the request to Serverpod.
     final properties = <String, dynamic>{
       'method': {
         'type': 'string',
@@ -140,7 +142,12 @@ class OpenApiGenerator {
     methodConnector.params.forEach((paramName, paramDesc) {
       final schema =
           _generateSchemaFromType(paramDesc.type, paramDesc.nullable);
-      if (usesQueryParameters) {
+      if (_shouldExposeAsQueryParameter(
+        httpMethod: httpMethod,
+        paramName: paramName.toString(),
+        schema: schema,
+        isAuthEndpoint: isAuthEndpoint,
+      )) {
         final querySchema = _schemaForQueryParameter(schema);
         parameters.add({
           'name': paramName,
@@ -158,11 +165,11 @@ class OpenApiGenerator {
     });
 
     // "method" is always required
-    if (!usesQueryParameters) {
+    if (!prefersQueryParameters) {
       requiredParams.insert(0, 'method');
     }
 
-    if (!usesQueryParameters && properties.isNotEmpty) {
+    if (properties.length > 1) {
       requestBody['required'] = true;
 
       // Add example for login endpoint
@@ -423,6 +430,29 @@ class OpenApiGenerator {
     return schema;
   }
 
+  bool _shouldExposeAsQueryParameter({
+    required String httpMethod,
+    required String paramName,
+    required Map<String, dynamic> schema,
+    required bool isAuthEndpoint,
+  }) {
+    if (httpMethod == 'GET' || httpMethod == 'DELETE') {
+      return true;
+    }
+
+    if (isAuthEndpoint || httpMethod != 'POST') {
+      return false;
+    }
+
+    final normalizedParam = paramName.toLowerCase().replaceAll('_', '');
+    if (_sensitiveParameterNames.any(normalizedParam.contains)) {
+      return false;
+    }
+
+    final schemaType = schema['type'];
+    return schemaType != 'object' && schemaType != 'array';
+  }
+
   /// Infers HTTP method from method name for semantic documentation
   ///
   /// Since Serverpod's generated code doesn't store HTTP method information,
@@ -562,6 +592,18 @@ class OpenApiGenerator {
     'retrieve',
     'query',
     'search',
+  };
+
+  static const _sensitiveParameterNames = {
+    'password',
+    'passcode',
+    'token',
+    'secret',
+    'apikey',
+    'key',
+    'authorization',
+    'auth',
+    'credential',
   };
 
   static const _updateVerbs = {
