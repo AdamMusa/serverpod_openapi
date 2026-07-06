@@ -214,6 +214,69 @@ void main() {
       }
     });
 
+    test('should read explicit HTTP method annotations', () {
+      final endpoint = _AnnotatedEndpoint();
+
+      expect(
+        OpenApiGenerator.annotatedHttpMethodForEndpoint(
+          endpoint: endpoint,
+          methodName: 'readThing',
+        ),
+        'GET',
+      );
+      expect(
+        OpenApiGenerator.annotatedHttpMethodForEndpoint(
+          endpoint: endpoint,
+          methodName: 'createThing',
+        ),
+        'POST',
+      );
+      expect(
+        OpenApiGenerator.annotatedHttpMethodForEndpoint(
+          endpoint: endpoint,
+          methodName: 'replaceThing',
+        ),
+        'PUT',
+      );
+      expect(
+        OpenApiGenerator.annotatedHttpMethodForEndpoint(
+          endpoint: endpoint,
+          methodName: 'changeThing',
+        ),
+        'PATCH',
+      );
+      expect(
+        OpenApiGenerator.annotatedHttpMethodForEndpoint(
+          endpoint: endpoint,
+          methodName: 'removeThing',
+        ),
+        'DELETE',
+      );
+    });
+
+    test('should prefer explicit annotations over inference', () {
+      final endpoint = _AnnotatedEndpoint();
+
+      expect(
+        OpenApiGenerator.resolveHttpMethodForDocumentation(
+          endpoint: endpoint,
+          methodName: 'createThing',
+          parameterNames: ['id'],
+          returnsVoid: false,
+        ),
+        'POST',
+      );
+      expect(
+        OpenApiGenerator.resolveHttpMethodForDocumentation(
+          endpoint: endpoint,
+          methodName: 'readThing',
+          parameterNames: ['password'],
+          returnsVoid: false,
+        ),
+        'GET',
+      );
+    });
+
     test('should generate type schemas correctly', () {
       // Test type schema generation logic
       final typeTests = {
@@ -425,6 +488,23 @@ void main() {
       }
     });
   });
+}
+
+class _AnnotatedEndpoint {
+  @get
+  void readThing() {}
+
+  @post
+  void createThing() {}
+
+  @put
+  void replaceThing() {}
+
+  @patch
+  void changeThing() {}
+
+  @delete
+  void removeThing() {}
 }
 
 /// Simple YAML conversion for testing

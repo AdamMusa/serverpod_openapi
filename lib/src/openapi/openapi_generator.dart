@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:mirrors';
 import 'package:serverpod/serverpod.dart';
+import 'openapi_annotations.dart';
 
 /// Generates OpenAPI 3.0 specification from Serverpod endpoints
 ///
@@ -52,10 +54,9 @@ class OpenApiGenerator {
           connector.endpoint.requireLogin || requiredScopes.isNotEmpty;
 
       connector.methodConnectors.forEach((methodName, methodConnector) {
-        // Infer the semantic HTTP method from method name
-        // This is the "real" HTTP method that should be used in OpenAPI
-        final httpMethod = inferHttpMethodForDocumentation(
-          methodName,
+        final httpMethod = resolveHttpMethodForDocumentation(
+          endpoint: connector.endpoint,
+          methodName: methodName,
           parameterNames: _getParameterNames(methodConnector),
           returnsVoid: _returnsVoid(methodConnector),
         );
@@ -555,6 +556,53 @@ class OpenApiGenerator {
     // If we can't determine, default to POST
     // Serverpod uses POST internally for all RPC calls, so POST is the appropriate default
     return 'POST';
+  }
+
+  /// Resolves the semantic HTTP method for an endpoint method.
+  ///
+  /// Explicit OpenAPI annotations on the endpoint method take precedence over
+  /// heuristics because they represent the developer's intended public API
+  /// contract.
+  static String resolveHttpMethodForDocumentation({
+    required Object endpoint,
+    required String methodName,
+    Iterable<String> parameterNames = const [],
+    bool? returnsVoid,
+  }) {
+    final annotatedMethod = annotatedHttpMethodForEndpoint(
+      endpoint: endpoint,
+      methodName: methodName,
+    );
+    if (annotatedMethod != null) {
+      return annotatedMethod;
+    }
+
+    return inferHttpMethodForDocumentation(
+      methodName,
+      parameterNames: parameterNames,
+      returnsVoid: returnsVoid,
+    );
+  }
+
+  /// Reads an [OpenApiMethod] annotation from a Serverpod endpoint method.
+  static String? annotatedHttpMethodForEndpoint({
+    required Object endpoint,
+    required String methodName,
+  }) {
+    final declaration =
+        reflect(endpoint).type.instanceMembers[Symbol(methodName)];
+    if (declaration is! MethodMirror) {
+      return null;
+    }
+
+    for (final metadata in declaration.metadata) {
+      final value = metadata.reflectee;
+      if (value is OpenApiMethod) {
+        return value.method;
+      }
+    }
+
+    return null;
   }
 
   static List<String> _splitMethodName(String methodName) {

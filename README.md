@@ -99,9 +99,49 @@ After adding the route, you can access your API documentation in several ways:
 
 ## How It Works
 
+### HTTP Method Annotations
+
+Use explicit annotations on endpoint methods to define the HTTP method shown in OpenAPI/Swagger:
+
+```dart
+import 'package:serverpod_openapi/serverpod_openapi.dart';
+
+class UserEndpoint extends Endpoint {
+  @get
+  Future<List<User>> listUsers(Session session) async {
+    // Returns a list of users
+  }
+
+  @post
+  Future<User> createUser(Session session, String name, String email) async {
+    // Creates a new user
+  }
+
+  @patch
+  Future<User> updateUser(Session session, int id, String name) async {
+    // Updates an existing user
+  }
+
+  @delete
+  Future<void> deleteUser(Session session, int id) async {
+    // Deletes a user
+  }
+}
+```
+
+Available annotations:
+
+- `@get`
+- `@post`
+- `@put`
+- `@patch`
+- `@delete`
+
+Serverpod still uses POST internally for RPC calls. The annotation controls the semantic OpenAPI operation shown to API consumers.
+
 ### HTTP Method Inference
 
-The package automatically infers HTTP methods from your endpoint method names using common naming conventions:
+If no annotation is present, the package falls back to method name inference using common naming conventions:
 
 **GET** methods (read operations):
 
@@ -120,7 +160,7 @@ The package automatically infers HTTP methods from your endpoint method names us
 
 - `delete*`, `remove*`, `destroy*`, `drop*`, `clear*`, `unlink*`, `unregister*`
 
-If a method name doesn't match any pattern, it defaults to POST (since Serverpod uses POST internally for all RPC calls).
+If a method name doesn't match any pattern, it defaults to POST.
 
 ### Authentication
 
@@ -149,18 +189,22 @@ Consider a Serverpod endpoint:
 
 ```dart
 class UserEndpoint extends Endpoint {
+  @get
   Future<List<User>> listUsers(Session session) async {
     // Returns a list of users
   }
 
+  @post
   Future<User> createUser(Session session, String name, String email) async {
     // Creates a new user
   }
 
+  @patch
   Future<User> updateUser(Session session, int id, String name) async {
     // Updates an existing user
   }
 
+  @delete
   Future<void> deleteUser(Session session, int id) async {
     // Deletes a user
   }
@@ -174,12 +218,9 @@ The OpenAPI documentation will show:
 - `PATCH /user/updateUser` - for updating users (with `id` and `name` parameters)
 - `DELETE /user/deleteUser` - for deleting users (with `id` parameter)
 
-When you test these endpoints in Swagger UI, the requests are automatically transformed to:
-
-- `POST /user` with `{"method": "listUsers"}` in the body
-- `POST /user` with `{"method": "createUser", "name": "...", "email": "..."}` in the body
-- `POST /user` with `{"method": "updateUser", "id": 1, "name": "..."}` in the body
-- `POST /user` with `{"method": "deleteUser", "id": 1}` in the body
+When you test these endpoints in Swagger UI, requests are automatically sent
+through Serverpod's internal RPC transport while Swagger still presents the
+annotated HTTP method and parameters.
 
 ## Type Support
 
@@ -199,7 +240,7 @@ Nullable types are properly handled with `oneOf` schemas.
 
 ## Best Practices
 
-1. **Use descriptive method names**: The HTTP method inference relies on clear naming conventions. Use prefixes like `get`, `create`, `update`, `delete` for best results.
+1. **Use explicit HTTP annotations**: Prefer `@get`, `@post`, `@put`, `@patch`, and `@delete` so the OpenAPI contract is intentional instead of inferred.
 
 2. **Document your endpoints**: Add meaningful descriptions to your endpoint classes and methods. While the package generates documentation automatically, additional context helps API consumers.
 
