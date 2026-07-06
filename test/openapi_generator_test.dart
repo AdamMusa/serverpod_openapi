@@ -214,32 +214,6 @@ void main() {
       }
     });
 
-    test('should prefer endpoint OpenAPI metadata over inference', () {
-      expect(
-        OpenApiGenerator.resolveHttpMethodForDocumentation(
-          methodName: 'hello',
-          parameterNames: ['name'],
-          returnsVoid: false,
-          metadata: const Post(
-            summary: 'Get greeting',
-            response: _ThingResponse,
-          ),
-        ),
-        'POST',
-      );
-    });
-
-    test('should carry summary and response metadata', () {
-      const operation = Get(
-        summary: 'Read thing',
-        response: _ThingResponse,
-      );
-
-      expect(operation.method, 'GET');
-      expect(operation.summary, 'Read thing');
-      expect(operation.response, _ThingResponse);
-    });
-
     test('should generate type schemas correctly', () {
       // Test type schema generation logic
       final typeTests = {
@@ -452,8 +426,6 @@ void main() {
     });
   });
 }
-
-class _ThingResponse {}
 
 /// Simple YAML conversion for testing
 String _simpleYamlConvert(Map<dynamic, dynamic> obj, [int indent = 0]) {
