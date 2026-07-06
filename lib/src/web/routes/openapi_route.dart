@@ -19,7 +19,7 @@ class RouteOpenApi extends WidgetRoute {
 
   @override
   Future<WebWidget> build(Session session, Request request) async {
-    final generator = _createGenerator(request);
+    final generator = _createGenerator();
 
     // Default: serve Swagger UI with embedded spec
     return _SwaggerUIWidget(generator.toJson(pretty: false));
@@ -28,7 +28,7 @@ class RouteOpenApi extends WidgetRoute {
   @override
   FutureOr<Result> handleCall(Session session, Request req) async {
     final format = req.url.queryParameters['format'];
-    final generator = _createGenerator(req);
+    final generator = _createGenerator();
 
     if (format == 'json') {
       return _rawResponse(
@@ -45,9 +45,8 @@ class RouteOpenApi extends WidgetRoute {
     return super.handleCall(session, req);
   }
 
-  OpenApiGenerator _createGenerator(Request request) {
-    // Serverpod API server runs on port 8080 (different from web server on 8082)
-    final apiServerUrl = '${request.url.scheme}://${request.url.host}:8080';
+  OpenApiGenerator _createGenerator() {
+    final apiServerUrl = _publicApiServerUrl();
 
     return OpenApiGenerator(
       pod: pod,
@@ -56,6 +55,25 @@ class RouteOpenApi extends WidgetRoute {
       serverUrl: apiServerUrl, // Use API server URL for actual calls
       description: description,
     );
+  }
+
+  String _publicApiServerUrl() {
+    final apiServer = pod.config.apiServer;
+    return Uri(
+      scheme: apiServer.publicScheme,
+      host: apiServer.publicHost,
+      port: _isDefaultPort(
+        apiServer.publicScheme,
+        apiServer.publicPort,
+      )
+          ? null
+          : apiServer.publicPort,
+    ).toString();
+  }
+
+  bool _isDefaultPort(String scheme, int port) {
+    return (scheme == 'http' && port == 80) ||
+        (scheme == 'https' && port == 443);
   }
 
   Response _rawResponse(String content, {required MimeType mimeType}) {

@@ -42,27 +42,41 @@ void main() {
       }
     });
 
-    test('should construct API server URL from request URL', () {
-      // Test API server URL construction
+    test('should construct API server URL from Serverpod public config', () {
       final testCases = [
         {
-          'request': Uri.parse('http://localhost:8082/openapi'),
+          'scheme': 'http',
+          'host': 'localhost',
+          'port': 8080,
           'expected': 'http://localhost:8080',
         },
         {
-          'request': Uri.parse('https://api.example.com:8082/openapi'),
-          'expected': 'https://api.example.com:8080',
+          'scheme': 'https',
+          'host': 'api.example.com',
+          'port': 443,
+          'expected': 'https://api.example.com',
         },
         {
-          'request': Uri.parse('http://127.0.0.1:8082/openapi'),
-          'expected': 'http://127.0.0.1:8080',
+          'scheme': 'https',
+          'host': 'api-staging.example.com',
+          'port': 8443,
+          'expected': 'https://api-staging.example.com:8443',
         },
       ];
 
       for (final testCase in testCases) {
-        final request = testCase['request'] as Uri;
+        final scheme = testCase['scheme'] as String;
+        final host = testCase['host'] as String;
+        final port = testCase['port'] as int;
         final expected = testCase['expected'] as String;
-        final apiServerUrl = '${request.scheme}://${request.host}:8080';
+        final apiServerUrl = Uri(
+          scheme: scheme,
+          host: host,
+          port: (scheme == 'http' && port == 80) ||
+                  (scheme == 'https' && port == 443)
+              ? null
+              : port,
+        ).toString();
         expect(apiServerUrl, expected);
       }
     });
