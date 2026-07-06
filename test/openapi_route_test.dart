@@ -89,67 +89,20 @@ void main() {
       expect(html.contains('swagger-ui-dist'), isTrue);
     });
 
-    test('should generate HTML structure for JSON widget', () {
-      // Test JSON widget HTML structure
+    test('should return raw JSON content without HTML wrapping', () {
       final jsonContent = '{"openapi":"3.0.3"}';
-      final html = '''
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <title>OpenAPI Specification - JSON</title>
-  </head>
-  <body>
-    <pre>${_escapeHtml(jsonContent)}</pre>
-  </body>
-</html>
-''';
 
-      expect(html.contains('OpenAPI Specification - JSON'), isTrue);
-      expect(html.contains('<pre>'), isTrue);
-      expect(html.contains('openapi'), isTrue);
+      expect(jsonContent, isNot(contains('<!DOCTYPE html>')));
+      expect(jsonContent, isNot(contains('<pre>')));
+      expect(() => jsonDecode(jsonContent), returnsNormally);
     });
 
-    test('should generate HTML structure for YAML widget', () {
-      // Test YAML widget HTML structure
+    test('should return raw YAML content without HTML wrapping', () {
       final yamlContent = 'openapi: 3.0.3';
-      final html = '''
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <title>OpenAPI Specification - YAML</title>
-  </head>
-  <body>
-    <pre>${_escapeHtml(yamlContent)}</pre>
-  </body>
-</html>
-''';
 
-      expect(html.contains('OpenAPI Specification - YAML'), isTrue);
-      expect(html.contains('<pre>'), isTrue);
-      expect(html.contains('openapi'), isTrue);
-    });
-
-    test('should escape HTML entities correctly', () {
-      // Test HTML escaping
-      final testCases = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-      };
-
-      testCases.forEach((input, expected) {
-        final escaped = input
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#39;');
-        expect(escaped, expected);
-      });
+      expect(yamlContent, isNot(contains('<!DOCTYPE html>')));
+      expect(yamlContent, isNot(contains('<pre>')));
+      expect(yamlContent, contains('openapi:'));
     });
 
     test('should base64 encode JSON spec for Swagger UI', () {
@@ -230,11 +183,3 @@ requestInterceptor: function(request) {
     });
   });
 }
-
-/// HTML escaping helper for testing
-String _escapeHtml(String input) => input
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:serverpod/serverpod.dart';
 import '../../openapi/openapi_generator.dart';
@@ -18,78 +19,58 @@ class RouteOpenApi extends WidgetRoute {
 
   @override
   Future<WebWidget> build(Session session, Request request) async {
-    final format = request.url.queryParameters['format'];
+    final generator = _createGenerator(request);
+
+    // Default: serve Swagger UI with embedded spec
+    return _SwaggerUIWidget(generator.toJson(pretty: false));
+  }
+
+  @override
+  FutureOr<Result> handleCall(Session session, Request req) async {
+    final format = req.url.queryParameters['format'];
+    final generator = _createGenerator(req);
+
+    if (format == 'json') {
+      return _rawResponse(
+        generator.toJson(pretty: true),
+        mimeType: MimeType.json,
+      );
+    } else if (format == 'yaml') {
+      return _rawResponse(
+        generator.toYaml(),
+        mimeType: const MimeType('application', 'yaml'),
+      );
+    }
+
+    return super.handleCall(session, req);
+  }
+
+  OpenApiGenerator _createGenerator(Request request) {
     // Serverpod API server runs on port 8080 (different from web server on 8082)
     final apiServerUrl = '${request.url.scheme}://${request.url.host}:8080';
 
-    final generator = OpenApiGenerator(
+    return OpenApiGenerator(
       pod: pod,
       title: title,
       version: version,
       serverUrl: apiServerUrl, // Use API server URL for actual calls
       description: description,
     );
-
-    // Serve raw JSON or YAML if format is specified
-    if (format == 'yaml') {
-      return _OpenApiYamlWidget(generator.toYaml());
-    } else if (format == 'json') {
-      return _OpenApiJsonWidget(generator.toJson(pretty: true));
-    }
-
-    // Default: serve Swagger UI with embedded spec
-    return _SwaggerUIWidget(generator.toJson(pretty: false));
-  }
-}
-
-class _OpenApiJsonWidget extends WebWidget {
-  final String jsonContent;
-
-  _OpenApiJsonWidget(this.jsonContent);
-
-  @override
-  String toString() => toHtml();
-
-  String toHtml() {
-    return '''
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenAPI Specification - JSON</title>
-    <style>
-      body {
-        margin: 0;
-        padding: 20px;
-        background: #1e1e1e;
-        color: #d4d4d4;
-        font-family: 'Courier New', monospace;
-        font-size: 14px;
-      }
-      pre {
-        background: #252526;
-        padding: 20px;
-        border-radius: 4px;
-        overflow-x: auto;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-      }
-    </style>
-  </head>
-  <body>
-    <pre>${_escapeHtml(jsonContent)}</pre>
-  </body>
-</html>
-''';
   }
 
-  String _escapeHtml(String input) => input
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
+  Response _rawResponse(String content, {required MimeType mimeType}) {
+    final headers = Headers.build(
+      (mh) => mh.cacheControl = CacheControlHeader(
+        noCache: true,
+        privateCache: true,
+      ),
+    );
+
+    return Response.ok(
+      body: Body.fromString(content, mimeType: mimeType),
+      headers: headers,
+    );
+  }
 }
 
 class _SwaggerUIWidget extends WebWidget {
@@ -138,7 +119,7 @@ class _SwaggerUIWidget extends WebWidget {
         // Decode base64 encoded JSON spec
         let spec;
         try {
-          const base64Spec = '${escapedBase64}';
+          const base64Spec = '$escapedBase64';
           const jsonString = atob(base64Spec);
           spec = JSON.parse(jsonString);
         } catch (e) {
@@ -240,54 +221,4 @@ class _SwaggerUIWidget extends WebWidget {
 </html>
 ''';
   }
-}
-
-class _OpenApiYamlWidget extends WebWidget {
-  final String yamlContent;
-
-  _OpenApiYamlWidget(this.yamlContent);
-
-  @override
-  String toString() => toHtml();
-
-  String toHtml() {
-    return '''
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenAPI Specification - YAML</title>
-    <style>
-      body {
-        margin: 0;
-        padding: 20px;
-        background: #1e1e1e;
-        color: #d4d4d4;
-        font-family: 'Courier New', monospace;
-        font-size: 14px;
-      }
-      pre {
-        background: #252526;
-        padding: 20px;
-        border-radius: 4px;
-        overflow-x: auto;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-      }
-    </style>
-  </head>
-  <body>
-    <pre>${_escapeHtml(yamlContent)}</pre>
-  </body>
-</html>
-''';
-  }
-
-  String _escapeHtml(String input) => input
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
 }
