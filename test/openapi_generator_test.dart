@@ -43,7 +43,7 @@ void main() {
         },
       };
 
-      final json = JsonEncoder.withIndent('  ').convert(testSpec);
+      final json = const JsonEncoder.withIndent('  ').convert(testSpec);
       expect(() => jsonDecode(json), returnsNormally);
       final decoded = jsonDecode(json);
       expect(decoded['openapi'], '3.0.3');
@@ -63,6 +63,17 @@ void main() {
       final yaml = _simpleYamlConvert(testSpec);
       expect(yaml.contains('openapi:'), isTrue);
       expect(yaml.contains('info:'), isTrue);
+    });
+
+    test('should escape YAML string values', () {
+      final yaml = _simpleYamlConvert({
+        'description': 'Copy the "key" value\nThen paste it.',
+        'parameters': <String>[],
+      });
+
+      expect(yaml,
+          contains(r'description: "Copy the \"key\" value\nThen paste it."'));
+      expect(yaml, contains('parameters: []'));
     });
 
     test('should handle OpenAPI 3.0.3 structure', () {
@@ -366,22 +377,22 @@ void main() {
         'startRegistration',
       ];
 
-      authEndpoints.forEach((endpoint) {
+      for (final endpoint in authEndpoints) {
         final isAuth = endpoint.toLowerCase().contains('auth') ||
             endpoint.toLowerCase().contains('idp') ||
             endpoint.toLowerCase().contains('login') ||
             endpoint.toLowerCase().contains('register');
         expect(isAuth, isTrue, reason: 'Endpoint: $endpoint');
-      });
+      }
 
-      authMethods.forEach((method) {
+      for (final method in authMethods) {
         final lowerMethod = method.toLowerCase();
         final isAuth = lowerMethod == 'login' ||
             lowerMethod == 'logout' ||
             lowerMethod.startsWith('register') ||
             lowerMethod.startsWith('startregistration');
         expect(isAuth, isTrue, reason: 'Method: $method');
-      });
+      }
     });
   });
 }
@@ -392,10 +403,22 @@ String _simpleYamlConvert(Map<dynamic, dynamic> obj, [int indent = 0]) {
   final buffer = StringBuffer();
   obj.forEach((key, value) {
     if (value is Map) {
-      buffer.writeln('$indentStr$key:');
-      buffer.write(_simpleYamlConvert(value, indent + 1));
+      if (value.isEmpty) {
+        buffer.writeln('$indentStr$key: {}');
+      } else {
+        buffer.writeln('$indentStr$key:');
+        buffer.write(_simpleYamlConvert(value, indent + 1));
+      }
+    } else if (value is List) {
+      if (value.isEmpty) {
+        buffer.writeln('$indentStr$key: []');
+      } else {
+        buffer.writeln('$indentStr$key:');
+      }
     } else if (value is String) {
-      buffer.writeln('$indentStr$key: "$value"');
+      buffer.writeln('$indentStr$key: ${jsonEncode(value)}');
+    } else if (value == null) {
+      buffer.writeln('$indentStr$key: null');
     } else {
       buffer.writeln('$indentStr$key: $value');
     }

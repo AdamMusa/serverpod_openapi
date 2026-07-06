@@ -645,25 +645,59 @@ class OpenApiGenerator {
   String _jsonToYaml(dynamic obj, int indent) {
     final indentStr = '  ' * indent;
     if (obj is Map) {
+      if (obj.isEmpty) {
+        return '$indentStr{}\n';
+      }
+
       final buffer = StringBuffer();
       obj.forEach((key, value) {
         if (value is Map || value is List) {
-          buffer.writeln('$indentStr$key:');
-          buffer.write(_jsonToYaml(value, indent + 1));
+          if (value is Map && value.isEmpty) {
+            buffer.writeln('$indentStr$key: {}');
+          } else if (value is List && value.isEmpty) {
+            buffer.writeln('$indentStr$key: []');
+          } else {
+            buffer.writeln('$indentStr$key:');
+            buffer.write(_jsonToYaml(value, indent + 1));
+          }
         } else if (value is String) {
-          buffer.writeln('$indentStr$key: "$value"');
+          buffer.writeln('$indentStr$key: ${jsonEncode(value)}');
+        } else if (value == null) {
+          buffer.writeln('$indentStr$key: null');
         } else {
           buffer.writeln('$indentStr$key: $value');
         }
       });
       return buffer.toString();
     } else if (obj is List) {
+      if (obj.isEmpty) {
+        return '$indentStr[]\n';
+      }
+
       final buffer = StringBuffer();
       for (var item in obj) {
-        buffer.writeln('$indentStr-');
-        buffer.write(_jsonToYaml(item, indent + 1));
+        if (item is Map || item is List) {
+          if (item is Map && item.isEmpty) {
+            buffer.writeln('$indentStr- {}');
+          } else if (item is List && item.isEmpty) {
+            buffer.writeln('$indentStr- []');
+          } else {
+            buffer.writeln('$indentStr-');
+            buffer.write(_jsonToYaml(item, indent + 1));
+          }
+        } else if (item is String) {
+          buffer.writeln('$indentStr- ${jsonEncode(item)}');
+        } else if (item == null) {
+          buffer.writeln('$indentStr- null');
+        } else {
+          buffer.writeln('$indentStr- $item');
+        }
       }
       return buffer.toString();
+    } else if (obj is String) {
+      return '$indentStr${jsonEncode(obj)}\n';
+    } else if (obj == null) {
+      return '${indentStr}null\n';
     } else {
       return '$indentStr$obj\n';
     }
