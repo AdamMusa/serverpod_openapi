@@ -204,7 +204,7 @@ class OpenApiGenerator {
             'The response contains a "key" field which is your bearer token. '
             'Use this token in the "Authorize" button above or as a Bearer token in the Authorization header.\n\n'
             'Note: Serverpod uses POST internally for all RPC calls. The HTTP method shown ($httpMethod) is semantic.'
-        : 'Note: Serverpod uses POST internally for all RPC calls to /$endpointName with {"method": "$methodName", ...params} in the body. '
+        : 'Note: Serverpod uses POST internally for all RPC calls. '
             'The HTTP method shown ($httpMethod) is semantic for REST-like documentation.';
 
     final operation = <String, dynamic>{
